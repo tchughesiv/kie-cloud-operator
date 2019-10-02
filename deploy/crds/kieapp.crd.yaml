@@ -9,6 +9,14 @@ spec:
     listKind: KieAppList
     plural: kieapps
     singular: kieapp
+  preserveUnknownFields: false
+  conversion:
+    strategy: Webhook
+    webhookClientConfig:
+      service:
+        name: kieapps-crd-webhook
+        namespace: openshift-marketplace
+        path: /my-webhook-path
   scope: Namespaced
   version: v2
   versions:
@@ -17,6 +25,7 @@ spec:
       storage: true
       schema:
         openAPIV3Schema:
+          type: object
           required:
             - spec
           properties:
@@ -661,6 +670,7 @@ spec:
       storage: false
       schema:
         openAPIV3Schema:
+          type: object
           required:
             - spec
           properties:

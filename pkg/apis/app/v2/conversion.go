@@ -133,11 +133,3 @@ func serveKieAppConversion(w http.ResponseWriter, r *http.Request) {
 	writeConversionResponse(w, response)
 }
 */
-
-// ADD TO CRD WHEN READY
-//
-//  conversion:
-//    strategy: Webhook
-//    webhookClientConfig:
-//      url: https://console-cr-form/my-webhook-path
-//
