@@ -1,7 +1,6 @@
 package v2
 
 import (
-	"github.com/RHsyseng/operator-utils/pkg/olm"
 	oappsv1 "github.com/openshift/api/apps/v1"
 	buildv1 "github.com/openshift/api/build/v1"
 	oimagev1 "github.com/openshift/api/image/v1"
@@ -12,9 +11,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
-
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 // KieAppSpec defines the desired state of KieApp
 type KieAppSpec struct {
@@ -525,49 +521,6 @@ type AuthTemplate struct {
 type RoleMapperTemplate struct {
 	MountPath            string `json:"mountPath,omitempty"`
 	RoleMapperAuthConfig `json:",inline"`
-}
-
-// ConditionType - type of condition
-type ConditionType string
-
-const (
-	// DeployedConditionType - the kieapp is deployed
-	DeployedConditionType ConditionType = "Deployed"
-	// ProvisioningConditionType - the kieapp is being provisioned
-	ProvisioningConditionType ConditionType = "Provisioning"
-	// FailedConditionType - the kieapp is in a failed state
-	FailedConditionType ConditionType = "Failed"
-)
-
-// ReasonType - type of reason
-type ReasonType string
-
-const (
-	// DeploymentFailedReason - Unable to deploy the application
-	DeploymentFailedReason ReasonType = "DeploymentFailed"
-	// ConfigurationErrorReason - An invalid configuration caused an error
-	ConfigurationErrorReason ReasonType = "ConfigurationError"
-	// MissingDependenciesReason - Dependencies does not exist or cannot be found
-	MissingDependenciesReason ReasonType = "MissingDependencies"
-	// UnknownReason - Unable to determine the error
-	UnknownReason ReasonType = "Unknown"
-)
-
-// Condition - The condition for the kie-cloud-operator
-type Condition struct {
-	Type               ConditionType          `json:"type"`
-	Status             corev1.ConditionStatus `json:"status"`
-	LastTransitionTime metav1.Time            `json:"lastTransitionTime,omitempty"`
-	Reason             ReasonType             `json:"reason,omitempty"`
-	Message            string                 `json:"message,omitempty"`
-}
-
-// KieAppStatus - The status for custom resources managed by the operator-sdk.
-type KieAppStatus struct {
-	Conditions  []Condition          `json:"conditions"`
-	ConsoleHost string               `json:"consoleHost,omitempty"`
-	Deployments olm.DeploymentStatus `json:"deployments"`
-	Phase       ConditionType        `json:"phase,omitempty"`
 }
 
 func init() {
