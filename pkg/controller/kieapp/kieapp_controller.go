@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -41,10 +42,47 @@ var log = logs.GetLogger("kieapp.controller")
 
 // Reconciler reconciles a KieApp object
 type Reconciler struct {
-	Service         kubernetes.PlatformService
-	OcpVersion      string
-	OcpVersionMajor string
-	OcpVersionMinor string
+	Service    kubernetes.PlatformService
+	OcpVersion OcpVersion
+}
+
+type OcpVersion struct {
+	Version string
+	Major   string
+	Minor   string
+}
+
+func CompareVersion(v OcpVersion, version string) (int, error) {
+	o := OcpVersion{
+		Version: version,
+		Major:   strings.Split(version, ".")[0],
+		Minor:   strings.Split(version, ".")[1],
+	}
+	if d, err := compareSegment(v.Major, o.Major); d != 0 {
+		return d, err
+	}
+	if d, err := compareSegment(v.Minor, o.Minor); d != 0 {
+		return d, err
+	}
+	return 0, nil
+}
+
+func compareSegment(v, o string) (int, error) {
+	v1, err := strconv.Atoi(v)
+	if err != nil {
+		return -1, err
+	}
+	v2, err := strconv.Atoi(o)
+	if err != nil {
+		return -1, err
+	}
+	if v1 < v2 {
+		return -1, nil
+	}
+	if v1 > v2 {
+		return 1, nil
+	}
+	return 0, nil
 }
 
 // Reconcile reads that state of the cluster for a KieApp object and makes changes based on the state read
