@@ -175,18 +175,25 @@ func findCustomObjectByName(template api.CustomObject, objects []api.CustomObjec
 
 func getEnvTemplate(cr *api.KieApp) (envTemplate api.EnvTemplate, err error) {
 	setDefaults(cr)
+	consoleConfig := getConsoleTemplate(cr)
 	serversConfig, err := getServersConfig(cr)
 	if err != nil {
 		return envTemplate, err
 	}
-	envTemplate = api.EnvTemplate{
-		CommonConfig: &cr.Spec.CommonConfig,
-		Console:      getConsoleTemplate(cr),
-		Servers:      serversConfig,
-		SmartRouter:  getSmartRouterTemplate(cr),
-		Constants:    *getTemplateConstants(cr),
+	smartConfig := getSmartRouterTemplate(cr)
+	constantsConfig := getTemplateConstants(cr)
+	crWmergedSpec, err := getMergedCR(cr)
+	if err != nil {
+		return envTemplate, err
 	}
-	if err := configureAuth(cr, &envTemplate); err != nil {
+	envTemplate = api.EnvTemplate{
+		CommonConfig: &crWmergedSpec.Spec.CommonConfig,
+		Console:      consoleConfig,
+		Servers:      serversConfig,
+		SmartRouter:  smartConfig,
+		Constants:    *constantsConfig,
+	}
+	if err := configureAuth(crWmergedSpec, &envTemplate); err != nil {
 		log.Error("unable to setup authentication: ", err)
 		return envTemplate, err
 	}
@@ -741,11 +748,11 @@ func getDefaultQueue(append bool, defaultJmsQueue string, jmsQueue string) strin
 
 func setPasswords(cr *api.KieApp, isTrialEnv bool) {
 	passwords := []*string{
-		&cr.Spec.CommonConfig.KeyStorePassword,
-		&cr.Spec.CommonConfig.AdminPassword,
-		&cr.Spec.CommonConfig.DBPassword,
-		&cr.Spec.CommonConfig.AMQPassword,
-		&cr.Spec.CommonConfig.AMQClusterPassword,
+		&cr.Status.Generated.CommonConfig.KeyStorePassword,
+		&cr.Status.Generated.CommonConfig.AdminPassword,
+		&cr.Status.Generated.CommonConfig.DBPassword,
+		&cr.Status.Generated.CommonConfig.AMQPassword,
+		&cr.Status.Generated.CommonConfig.AMQClusterPassword,
 	}
 
 	for i := range passwords {
@@ -917,14 +924,23 @@ func setDefaults(cr *api.KieApp) {
 		})
 	}
 	if len(cr.Spec.Version) == 0 {
-		cr.Spec.Version = constants.CurrentVersion
+		cr.Status.Generated.Version = constants.CurrentVersion
 	}
 	if len(cr.Spec.CommonConfig.ApplicationName) == 0 {
-		cr.Spec.CommonConfig.ApplicationName = cr.Name
+		cr.Status.Generated.CommonConfig.ApplicationName = cr.Name
 	}
 	if len(cr.Spec.CommonConfig.AdminUser) == 0 {
-		cr.Spec.CommonConfig.AdminUser = constants.DefaultAdminUser
+		cr.Status.Generated.CommonConfig.AdminUser = constants.DefaultAdminUser
 	}
 	isTrialEnv := strings.HasSuffix(string(cr.Spec.Environment), constants.TrialEnvSuffix)
 	setPasswords(cr, isTrialEnv)
+}
+
+func getMergedCR(cr *api.KieApp) (*api.KieApp, error) {
+	crWmergedSpec := cr.DeepCopy()
+	err := mergo.Merge(crWmergedSpec.Spec, cr.Status.Generated)
+	if err != nil {
+		return crWmergedSpec, err
+	}
+	return crWmergedSpec, nil
 }
