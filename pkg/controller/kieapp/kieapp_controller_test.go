@@ -8,14 +8,13 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	consolev1 "github.com/openshift/api/console/v1"
-	routev1 "github.com/openshift/api/route/v1"
-
 	api "github.com/kiegroup/kie-cloud-operator/pkg/apis/app/v2"
 	"github.com/kiegroup/kie-cloud-operator/pkg/controller/kieapp/constants"
 	"github.com/kiegroup/kie-cloud-operator/pkg/controller/kieapp/defaults"
 	"github.com/kiegroup/kie-cloud-operator/pkg/controller/kieapp/test"
 	oappsv1 "github.com/openshift/api/apps/v1"
+	consolev1 "github.com/openshift/api/console/v1"
+	routev1 "github.com/openshift/api/route/v1"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -652,37 +651,6 @@ func TestConsoleLinkCreation(t *testing.T) {
 	consoleLink = &consolev1.ConsoleLink{}
 	err = reconciler.Service.Get(context.TODO(), getNamespacedName("", "testns-cr-0"), consoleLink)
 	assert.Error(t, err, "ConsoleLink must have been removed by the Finalizer")
-}
-
-func TestVersionCompare(t *testing.T) {
-	v := OcpVersion{Version: "4.3", Major: "4", Minor: "3"}
-	i, err := CompareVersion(v, "4.2")
-	assert.Nil(t, err)
-	assert.Equal(t, 1, i)
-
-	i, err = CompareVersion(v, "4.3")
-	assert.Nil(t, err)
-	assert.Equal(t, 0, i)
-
-	i, err = CompareVersion(v, "4.4")
-	assert.Nil(t, err)
-	assert.Equal(t, -1, i)
-
-	i, err = CompareVersion(v, "4.5")
-	assert.Nil(t, err)
-	assert.Equal(t, -1, i)
-
-	i, err = CompareVersion(v, "4.10")
-	assert.Nil(t, err)
-	assert.Equal(t, -1, i)
-
-	i, err = CompareVersion(v, "4.11")
-	assert.Nil(t, err)
-	assert.Equal(t, -1, i)
-
-	i, err = CompareVersion(v, "7.0")
-	assert.Nil(t, err)
-	assert.Equal(t, -1, i)
 }
 
 func getNamespacedName(namespace string, name string) types.NamespacedName {
