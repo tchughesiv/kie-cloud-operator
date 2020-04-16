@@ -13,13 +13,13 @@ import (
 	"github.com/RHsyseng/operator-utils/pkg/resource/compare"
 	"github.com/RHsyseng/operator-utils/pkg/resource/read"
 	"github.com/RHsyseng/operator-utils/pkg/resource/write"
-	"github.com/blang/semver"
 	api "github.com/kiegroup/kie-cloud-operator/pkg/apis/app/v2"
 	"github.com/kiegroup/kie-cloud-operator/pkg/components"
 	"github.com/kiegroup/kie-cloud-operator/pkg/controller/kieapp/constants"
 	"github.com/kiegroup/kie-cloud-operator/pkg/controller/kieapp/shared"
 	routev1 "github.com/openshift/api/route/v1"
 	operatorsv1alpha1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1alpha1"
+	"golang.org/x/mod/semver"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -51,7 +51,7 @@ func deployConsole(reconciler *Reconciler, operator *appsv1.Deployment) {
 	sa := getServiceAccount(namespace)
 	image := getImage(operator)
 	pod := getPod(namespace, image, sa.Name, reconciler.OcpVersion, operator)
-	service := getService(namespace, reconciler.OcpVersion.Major)
+	service := getService(namespace, semver.Major(reconciler.OcpVersion))
 	route := getRoute(namespace)
 	requested := compare.NewMapBuilder().Add(role, roleBinding, sa, pod, service, route).ResourceMap()
 	deployed, err := loadCounterparts(reconciler, namespace, requested)
@@ -62,7 +62,7 @@ func deployConsole(reconciler *Reconciler, operator *appsv1.Deployment) {
 	comparator := compare.NewMapComparator()
 	deltas := comparator.Compare(deployed, requested)
 	writer := write.New(reconciler.Service).WithOwnerReferences(operator.GetOwnerReferences()...)
-	if reconciler.OcpVersion.GE(semver.MustParse("4.2.0")) {
+	if semver.Compare(reconciler.OcpVersion, "v4.2") >= 0 {
 		if _, err = writer.AddResources([]resource.KubernetesResource{getConfigMap(namespace)}); err != nil {
 			log.Warnf("Got error applying changes %v", err)
 		}
@@ -165,7 +165,7 @@ func getConsoleLink(csv *operatorsv1alpha1.ClusterServiceVersion) *operatorsv1al
 	return nil
 }
 
-func getPod(namespace, image, sa string, v semver.Version, operator *appsv1.Deployment) *corev1.Pod {
+func getPod(namespace, image, sa, ocpVersion string, operator *appsv1.Deployment) *corev1.Pod {
 	labels := map[string]string{
 		"app":  operatorName,
 		"name": consoleName,
@@ -188,12 +188,12 @@ func getPod(namespace, image, sa string, v semver.Version, operator *appsv1.Depl
 
 	// set oauth image by ocp version, default to latest available
 	oauthImage := constants.Oauth4ImageLatestURL
-	if val, exists := os.LookupEnv(fmt.Sprintf(constants.OauthVar+"%d.%d", v.Major, v.Minor)); exists {
+	if val, exists := os.LookupEnv(constants.OauthVar + strings.TrimPrefix(semver.MajorMinor(ocpVersion), "v")); exists {
 		oauthImage = val
 	} else if val, exists := os.LookupEnv(constants.OauthVar + "LATEST"); exists {
 		oauthImage = val
 	}
-	if v.Major == 3 {
+	if semver.Major(ocpVersion) == "v3" {
 		oauthImage = constants.Oauth3ImageLatestURL
 		if val, exists := os.LookupEnv(constants.OauthVar + "3"); exists {
 			oauthImage = val
@@ -265,7 +265,7 @@ func getPod(namespace, image, sa string, v semver.Version, operator *appsv1.Depl
 			},
 		},
 	}
-	if v.GE(semver.MustParse("4.2.0")) || reflect.DeepEqual(v, semver.Version{}) {
+	if semver.Compare(ocpVersion, "v4.2") >= 0 || ocpVersion == "" {
 		caVolume := corev1.Volume{
 			Name: operatorName + "-trusted-cabundle",
 		}
@@ -288,7 +288,7 @@ func getImage(operator *appsv1.Deployment) string {
 	return image
 }
 
-func getService(namespace string, ocpMajor uint64) *corev1.Service {
+func getService(namespace string, ocpMajor string) *corev1.Service {
 	labels := map[string]string{
 		"app":  operatorName,
 		"name": consoleName,
@@ -311,7 +311,7 @@ func getService(namespace string, ocpMajor uint64) *corev1.Service {
 			Selector: labels,
 		},
 	}
-	if ocpMajor == 3 {
+	if ocpMajor == "v3" {
 		svc.Annotations = map[string]string{"service.alpha.openshift.io/serving-cert-secret-name": operatorName + "-proxy-tls"}
 	}
 	return svc

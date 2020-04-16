@@ -15,7 +15,6 @@ import (
 	"github.com/RHsyseng/operator-utils/pkg/resource/read"
 	"github.com/RHsyseng/operator-utils/pkg/resource/write"
 	"github.com/RHsyseng/operator-utils/pkg/utils/kubernetes"
-	"github.com/blang/semver"
 	api "github.com/kiegroup/kie-cloud-operator/pkg/apis/app/v2"
 	"github.com/kiegroup/kie-cloud-operator/pkg/controller/kieapp/constants"
 	"github.com/kiegroup/kie-cloud-operator/pkg/controller/kieapp/defaults"
@@ -43,7 +42,7 @@ var log = logs.GetLogger("kieapp.controller")
 // Reconciler reconciles a KieApp object
 type Reconciler struct {
 	Service    kubernetes.PlatformService
-	OcpVersion semver.Version
+	OcpVersion string
 }
 
 // Reconcile reads that state of the cluster for a KieApp object and makes changes based on the state read

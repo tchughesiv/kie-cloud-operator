@@ -4,11 +4,9 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"reflect"
 	"strings"
 	"testing"
 
-	"github.com/blang/semver"
 	"github.com/ghodss/yaml"
 	"github.com/gobuffalo/packr/v2"
 	"github.com/kiegroup/kie-cloud-operator/pkg/controller/kieapp/constants"
@@ -19,6 +17,7 @@ import (
 	routev1 "github.com/openshift/api/route/v1"
 	operators "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1alpha1"
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/mod/semver"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -53,22 +52,22 @@ func TestUpdateExistingLink(t *testing.T) {
 }
 
 func TestProxyVersion(t *testing.T) {
-	checkConsoleProxySettings(t, semver.MustParse("4.3.2"))
-	checkConsoleProxySettings(t, semver.MustParse("4.3.0"))
-	checkConsoleProxySettings(t, semver.MustParse("4.2.0"))
-	checkConsoleProxySettings(t, semver.MustParse("4.1.0"))
+	checkConsoleProxySettings(t, "v4.3")
+	checkConsoleProxySettings(t, "v4.3.2")
+	checkConsoleProxySettings(t, "v4.2")
+	checkConsoleProxySettings(t, "v4.1")
 
 	// ocp 3.x versions should default to latest oauth3 image
-	checkConsoleProxySettings(t, semver.MustParse("3.11.0"))
-	checkConsoleProxySettings(t, semver.MustParse("3.5.0"))
+	checkConsoleProxySettings(t, "v3.11")
+	checkConsoleProxySettings(t, "v3.5")
 
 	// unknown ocp version should default to 'latest' proxy image
-	checkConsoleProxySettings(t, semver.MustParse("7.3.5"))
-	checkConsoleProxySettings(t, semver.MustParse("4.11.0"))
-	checkConsoleProxySettings(t, semver.Version{})
+	checkConsoleProxySettings(t, "v7.3")
+	checkConsoleProxySettings(t, "v4.11")
+	checkConsoleProxySettings(t, "")
 }
 
-func checkConsoleProxySettings(t *testing.T, v semver.Version) {
+func checkConsoleProxySettings(t *testing.T, ocpVersion string) {
 	box := packr.New("Operator", "../../../deploy")
 	bytes, err := box.Find("operator.yaml")
 	assert.Nil(t, err, "Error reading Operator file")
@@ -77,29 +76,29 @@ func checkConsoleProxySettings(t *testing.T, v semver.Version) {
 	assert.Nil(t, err, "Error parsing Operator file")
 	operatorName = operator.Name
 	for _, envVar := range operator.Spec.Template.Spec.Containers[0].Env {
-		if envVar.Name == fmt.Sprintf(constants.OauthVar+"%d.%d", v.Major, v.Minor) {
+		if envVar.Name == constants.OauthVar+strings.TrimPrefix(semver.MajorMinor(ocpVersion), "v") {
 			os.Setenv(envVar.Name, envVar.Value)
 		}
 	}
 	for _, envVar := range operator.Spec.Template.Spec.Containers[0].Env {
-		if envVar.Name == fmt.Sprintf(constants.OauthVar+"%d", v.Minor) {
+		if envVar.Name == fmt.Sprintf(constants.OauthVar+"3") {
 			os.Setenv(envVar.Name, envVar.Value)
 		}
 	}
-	pod := getPod(operator.Namespace, getImage(operator), "saName", v, operator)
+	pod := getPod(operator.Namespace, getImage(operator), "saName", ocpVersion, operator)
 	caBundlePath := "--openshift-ca=/etc/pki/ca-trust/extracted/crt/ca-bundle.crt"
-	if v.Major == 3 {
+	if semver.Major(ocpVersion) == "v3" {
 		assert.NotContains(t, pod.Spec.Containers[0].Args, caBundlePath)
 		assert.Equal(t,
 			map[string]string{
 				"service.alpha.openshift.io/serving-cert-secret-name": operator.Name + "-proxy-tls",
 			},
-			getService(pod.Namespace, v.Major).Annotations,
+			getService(pod.Namespace, semver.Major(ocpVersion)).Annotations,
 			"should use service.alpha.openshift.io version of serving-cert-secret-name",
 		)
 		assert.Equal(t, constants.Oauth3ImageLatestURL, pod.Spec.Containers[0].Image)
 	} else {
-		if v.GE(semver.MustParse("4.2.0")) || reflect.DeepEqual(v, semver.Version{}) {
+		if semver.Compare(ocpVersion, "v4.2") >= 0 || ocpVersion == "" {
 			assert.Contains(t, pod.Spec.Containers[0].Args, caBundlePath)
 		} else {
 			log.Warn(err)
@@ -108,11 +107,11 @@ func checkConsoleProxySettings(t *testing.T, v semver.Version) {
 			map[string]string{
 				"service.beta.openshift.io/serving-cert-secret-name": operator.Name + "-proxy-tls",
 			},
-			getService(pod.Namespace, v.Major).Annotations,
+			getService(pod.Namespace, semver.Major(ocpVersion)).Annotations,
 			"should use service.beta.openshift.io version of serving-cert-secret-name",
 		)
-		if _, ok := shared.Find(constants.SupportedOcpVersions, fmt.Sprintf("%d.%d", v.Major, v.Minor)); ok {
-			assert.Equal(t, constants.Oauth4ImageURL+":"+fmt.Sprintf("%d.%d", v.Major, v.Minor), pod.Spec.Containers[0].Image)
+		if _, ok := shared.Find(constants.SupportedOcpVersions, strings.TrimPrefix(semver.MajorMinor(ocpVersion), "v")); ok {
+			assert.Equal(t, constants.Oauth4ImageURL+":"+strings.TrimPrefix(semver.MajorMinor(ocpVersion), "v"), pod.Spec.Containers[0].Image)
 		} else {
 			assert.Equal(t, constants.Oauth4ImageLatestURL, pod.Spec.Containers[0].Image)
 		}
@@ -146,7 +145,7 @@ func checkCSV(t *testing.T, csv *operators.ClusterServiceVersion) {
 		}
 		return service.Client.Create(ctx, obj, opts...)
 	}
-	deployConsole(&Reconciler{Service: service, OcpVersion: semver.Version{}}, operator)
+	deployConsole(&Reconciler{Service: service, OcpVersion: "v4.3"}, operator)
 
 	updatedCSV := &operators.ClusterServiceVersion{}
 	err = service.Get(context.TODO(), types.NamespacedName{Name: csv.Name, Namespace: csv.Namespace}, updatedCSV)
