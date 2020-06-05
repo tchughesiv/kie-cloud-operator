@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/RHsyseng/operator-utils/pkg/logs"
@@ -15,6 +16,9 @@ import (
 	"github.com/RHsyseng/operator-utils/pkg/resource/read"
 	"github.com/RHsyseng/operator-utils/pkg/resource/write"
 	"github.com/RHsyseng/operator-utils/pkg/utils/kubernetes"
+	"github.com/containers/image/v5/image"
+	"github.com/containers/image/v5/transports/alltransports"
+	imagetypes "github.com/containers/image/v5/types"
 	api "github.com/kiegroup/kie-cloud-operator/pkg/apis/app/v2"
 	"github.com/kiegroup/kie-cloud-operator/pkg/controller/kieapp/constants"
 	"github.com/kiegroup/kie-cloud-operator/pkg/controller/kieapp/defaults"
@@ -26,6 +30,8 @@ import (
 	oimagev1 "github.com/openshift/api/image/v1"
 	routev1 "github.com/openshift/api/route/v1"
 	operatorsv1alpha1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1alpha1"
+	pkgerrors "github.com/pkg/errors"
+	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/mod/semver"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -38,12 +44,127 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-var log = logs.GetLogger("kieapp.controller")
+var (
+	log = logs.GetLogger("kieapp.controller")
+
+	productPodSum = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "product:pod:sum",
+			Help: "Product count by running pod(s)",
+		},
+		[]string{},
+	)
+
+	gooberFailures = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name: "goober_failures_total",
+			Help: "Number of failed goobers",
+		},
+	)
+)
+
+func init() {
+	// Register custom metrics with the global prometheus registry
+	prometheus.MustRegister(productPodSum, gooberFailures)
+}
 
 // Reconciler reconciles a KieApp object
 type Reconciler struct {
 	Service    kubernetes.PlatformService
 	OcpVersion string
+}
+
+// test product type/version aggregation from pod image lookup
+func (reconciler *Reconciler) imageLookup(namespace string) (retErr error) {
+	podList := &corev1.PodList{}
+	err := reconciler.Service.List(context.TODO(), podList)
+	if err != nil {
+		return err
+	}
+	images := []string{}
+	for _, pod := range podList.Items {
+		if pod.Status.Phase == corev1.PodRunning {
+			for _, container := range pod.Spec.Containers {
+				if strings.HasPrefix(container.Image, "registry.redhat.io") {
+					images = append(images, container.Image)
+				}
+			}
+		}
+	}
+	sys := &imagetypes.SystemContext{
+		OSChoice: "linux",
+	}
+	if regUser, ok := syscall.Getenv("REG_USER"); ok {
+		if sys.DockerAuthConfig == nil {
+			sys.DockerAuthConfig = &imagetypes.DockerAuthConfig{}
+		}
+		sys.DockerAuthConfig.Username = regUser
+	}
+	if regPwd, ok := syscall.Getenv("REG_PWD"); ok {
+		if sys.DockerAuthConfig == nil {
+			sys.DockerAuthConfig = &imagetypes.DockerAuthConfig{}
+		}
+		sys.DockerAuthConfig.Password = regPwd
+	}
+
+	imagesCount := uniqueCount(images)
+	for img, num := range imagesCount {
+		fmt.Println()
+		fmt.Println(img)
+		fmt.Printf("image is used %d time(s) in %s\n", num, namespace)
+		imgSrc, err := parseImageSource(context.TODO(), sys, "docker://"+img)
+		if err != nil {
+			return err
+		}
+		defer func() {
+			if err := imgSrc.Close(); err != nil {
+				retErr = pkgerrors.Wrapf(retErr, fmt.Sprintf("(could not close image: %v) ", err))
+			}
+		}()
+
+		img, err := image.FromUnparsedImage(context.TODO(), sys, image.UnparsedInstance(imgSrc, nil))
+		if err != nil {
+			return fmt.Errorf("Error parsing manifest for image: %v", err)
+		}
+
+		config, err := img.OCIConfig(context.TODO())
+		if err != nil {
+			return fmt.Errorf("Error reading OCI-formatted configuration data: %v", err)
+		}
+		fmt.Println()
+		fmt.Println("IMAGE LABELS -")
+		for key, val := range config.Config.Labels {
+			if key == "org.jboss.product" {
+				fmt.Println(key + "=" + val)
+				productPodSum.WithLabelValues(key).Inc()
+			}
+		}
+
+		fmt.Println()
+	}
+	return nil
+}
+
+func parseImageSource(ctx context.Context, sys *imagetypes.SystemContext, name string) (imagetypes.ImageSource, error) {
+	ref, err := alltransports.ParseImageName(name)
+	if err != nil {
+		return nil, err
+	}
+	return ref.NewImageSource(ctx, sys)
+}
+
+func uniqueCount(intSlice []string) map[string]int {
+	keys := make(map[string]bool)
+	list := map[string]int{}
+	for _, entry := range intSlice {
+		if _, value := keys[entry]; !value {
+			keys[entry] = true
+			list[entry] = 1
+		} else {
+			list[entry] = list[entry] + 1
+		}
+	}
+	return list
 }
 
 // Reconcile reads that state of the cluster for a KieApp object and makes changes based on the state read
@@ -52,6 +173,11 @@ type Reconciler struct {
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (reconciler *Reconciler) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+	// Fetch image labels
+	if err := reconciler.imageLookup(request.Namespace); err != nil {
+		return reconcile.Result{}, err
+	}
+
 	// The next several lines only execute if the operator is running in a pod, via deployment.
 	// Otherwise, embedded configs are used and no console is deployed.
 	if opName, depNameSpace, useEmbedded := defaults.UseEmbeddedFiles(reconciler.Service); !useEmbedded {

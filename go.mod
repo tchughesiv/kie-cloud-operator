@@ -6,6 +6,7 @@ require (
 	github.com/RHsyseng/console-cr-form v0.0.0-20200414161125-135bc9b52976
 	github.com/RHsyseng/operator-utils v0.0.0-20200414154239-8ab0e9a7d0f7
 	github.com/blang/semver v3.5.1+incompatible
+	github.com/containers/image/v5 v5.4.4
 	github.com/coreos/prometheus-operator v0.35.1
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
 	github.com/go-openapi/spec v0.19.6
@@ -14,7 +15,7 @@ require (
 	github.com/google/uuid v1.1.1
 	github.com/gophercloud/gophercloud v0.6.0 // indirect
 	github.com/heroku/docker-registry-client v0.0.0-20190909225348-afc9e1acc3d5
-	github.com/imdario/mergo v0.3.8
+	github.com/imdario/mergo v0.3.9
 	github.com/kr/pty v1.1.5 // indirect
 	github.com/openshift/api v3.9.1-0.20190924102528-32369d4db2ad+incompatible
 	github.com/openshift/client-go v3.9.0+incompatible
@@ -22,9 +23,10 @@ require (
 	github.com/operator-framework/operator-sdk v0.0.0-00010101000000-000000000000
 	github.com/pavel-v-chernykh/keystore-go v2.1.0+incompatible
 	github.com/pkg/errors v0.9.1
+	github.com/prometheus/client_golang v1.2.1
 	github.com/prometheus/common v0.7.0
 	github.com/spf13/pflag v1.0.5
-	github.com/stretchr/testify v1.4.0
+	github.com/stretchr/testify v1.5.1
 	github.com/tidwall/gjson v1.4.0
 	github.com/tidwall/sjson v1.0.4
 	golang.org/x/mod v0.1.1-0.20191105210325-c90efee705ee

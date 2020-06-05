@@ -4,10 +4,11 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/RHsyseng/operator-utils/pkg/logs"
 	"os"
 	"runtime"
 	"time"
+
+	"github.com/RHsyseng/operator-utils/pkg/logs"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
@@ -37,11 +38,11 @@ import (
 
 // Change below variables to serve metrics on different host or port.
 var (
+	log                       = logs.GetLogger("cmd")
 	metricsHost               = "0.0.0.0"
 	metricsPort         int32 = 8383
 	operatorMetricsPort int32 = 8686
 )
-var log = logs.GetLogger("cmd")
 
 func printVersion() {
 	log.Info(fmt.Sprintf("Go Version: %s", runtime.Version()))
