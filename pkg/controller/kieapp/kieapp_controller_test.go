@@ -546,7 +546,7 @@ func TestCreateRhpamImageStreams(t *testing.T) {
 	err = reconciler.createLocalImageTag(fmt.Sprintf("rhpam%s-businesscentral-openshift:1.0", cr.Status.Applied.Version), cr)
 	assert.Nil(t, err)
 
-	isTag, err := isTagMock.Get(fmt.Sprintf("test-ns/rhpam%s-businesscentral-openshift:1.0", cr.Status.Applied.Version), metav1.GetOptions{})
+	isTag, err := isTagMock.Get(context.TODO(), fmt.Sprintf("test-ns/rhpam%s-businesscentral-openshift:1.0", cr.Status.Applied.Version), metav1.GetOptions{})
 	assert.Nil(t, err)
 	assert.NotNil(t, isTag)
 	assert.Equal(t, fmt.Sprintf("registry.redhat.io/rhpam-7/rhpam%s-businesscentral-openshift:1.0", cr.Status.Applied.Version), isTag.Tag.From.Name)
@@ -573,7 +573,7 @@ func TestCreateRhdmImageStreams(t *testing.T) {
 	err = reconciler.createLocalImageTag(fmt.Sprintf("rhdm%s-decisioncentral-openshift:1.0", cr.Status.Applied.Version), cr)
 	assert.Nil(t, err)
 
-	isTag, err := isTagMock.Get(fmt.Sprintf("test-ns/rhdm%s-decisioncentral-openshift:1.0", cr.Status.Applied.Version), metav1.GetOptions{})
+	isTag, err := isTagMock.Get(context.TODO(), fmt.Sprintf("test-ns/rhdm%s-decisioncentral-openshift:1.0", cr.Status.Applied.Version), metav1.GetOptions{})
 	assert.Nil(t, err)
 	assert.NotNil(t, isTag)
 	assert.Equal(t, fmt.Sprintf("registry.redhat.io/rhdm-7/rhdm%s-decisioncentral-openshift:1.0", cr.Status.Applied.Version), isTag.Tag.From.Name)
@@ -600,7 +600,7 @@ func TestCreateTagVersionImageStreams(t *testing.T) {
 	err = reconciler.createLocalImageTag(fmt.Sprintf("%s:%s", constants.VersionConstants[cr.Status.Applied.Version].DatagridImage, constants.VersionConstants[cr.Status.Applied.Version].DatagridImageTag), cr)
 	assert.Nil(t, err)
 
-	isTag, err := isTagMock.Get(fmt.Sprintf("test-ns/%s:%s", constants.VersionConstants[cr.Status.Applied.Version].DatagridImage, constants.VersionConstants[cr.Status.Applied.Version].DatagridImageTag), metav1.GetOptions{})
+	isTag, err := isTagMock.Get(context.TODO(), fmt.Sprintf("test-ns/%s:%s", constants.VersionConstants[cr.Status.Applied.Version].DatagridImage, constants.VersionConstants[cr.Status.Applied.Version].DatagridImageTag), metav1.GetOptions{})
 	assert.Nil(t, err)
 	assert.NotNil(t, isTag)
 	assert.Equal(t, fmt.Sprintf("%s/jboss-datagrid-7/%s:%s", constants.ImageRegistry, constants.VersionConstants[cr.Status.Applied.Version].DatagridImage, constants.VersionConstants[cr.Status.Applied.Version].DatagridImageTag), isTag.Tag.From.Name)
@@ -627,7 +627,7 @@ func TestCreateImageStreamsLatest(t *testing.T) {
 	err = reconciler.createLocalImageTag(fmt.Sprintf("%s", constants.VersionConstants[cr.Status.Applied.Version].DatagridImage), cr)
 	assert.Nil(t, err)
 
-	isTag, err := isTagMock.Get(fmt.Sprintf("test-ns/%s:latest", constants.VersionConstants[cr.Status.Applied.Version].DatagridImage), metav1.GetOptions{})
+	isTag, err := isTagMock.Get(context.TODO(), fmt.Sprintf("test-ns/%s:latest", constants.VersionConstants[cr.Status.Applied.Version].DatagridImage), metav1.GetOptions{})
 	assert.Nil(t, err)
 	fmt.Print(isTag)
 	assert.NotNil(t, isTag)
@@ -657,6 +657,7 @@ func TestStatusDeploymentsProgression(t *testing.T) {
 	assert.Nil(t, err)
 
 	cr = reloadCR(t, service, crNamespacedName)
+	assert.NotEmpty(t, cr.Status.Conditions)
 	assert.Equal(t, api.ProvisioningConditionType, cr.Status.Conditions[0].Type)
 	assert.Len(t, cr.Status.Deployments.Stopped, 2, "Expect 2 stopped deployments")
 
@@ -676,7 +677,7 @@ func TestStatusDeploymentsProgression(t *testing.T) {
 
 	result, err = reconciler.Reconcile(reconcile.Request{NamespacedName: crNamespacedName})
 	assert.Nil(t, err)
-	assert.Equal(t, reconcile.Result{Requeue: true}, result, "Deployment should be created but requeued for status updates")
+	assert.Equal(t, reconcile.Result{}, result, "Deployment should be completed")
 
 	cr = reloadCR(t, service, crNamespacedName)
 	assert.Equal(t, api.ProvisioningConditionType, cr.Status.Conditions[0].Type)
@@ -698,7 +699,7 @@ func TestStatusDeploymentsProgression(t *testing.T) {
 
 	result, err = reconciler.Reconcile(reconcile.Request{NamespacedName: crNamespacedName})
 	assert.Nil(t, err)
-	assert.Equal(t, reconcile.Result{Requeue: true}, result, "Deployment should be created but requeued for status updates")
+	assert.Equal(t, reconcile.Result{}, result, "Deployment should be completed")
 
 	cr = reloadCR(t, service, crNamespacedName)
 	assert.Equal(t, api.ProvisioningConditionType, cr.Status.Conditions[0].Type)
@@ -755,7 +756,7 @@ func TestConsoleLinkCreation(t *testing.T) {
 
 	result, err = reconciler.Reconcile(reconcile.Request{NamespacedName: crNamespacedName})
 	assert.Nil(t, err)
-	assert.Equal(t, reconcile.Result{Requeue: true}, result, "Deployment should be created but requeued for status updates")
+	assert.Equal(t, reconcile.Result{}, result, "Deployment should be completed")
 
 	cr = reloadCR(t, service, crNamespacedName)
 	assert.Equal(t, api.ProvisioningConditionType, cr.Status.Conditions[0].Type)
@@ -777,7 +778,7 @@ func TestConsoleLinkCreation(t *testing.T) {
 
 	result, err = reconciler.Reconcile(reconcile.Request{NamespacedName: crNamespacedName})
 	assert.Nil(t, err)
-	assert.Equal(t, reconcile.Result{Requeue: true}, result, "Deployment should be created but requeued for status updates")
+	assert.Equal(t, reconcile.Result{}, result, "Deployment should be completed")
 
 	cr = reloadCR(t, service, crNamespacedName)
 	assert.Equal(t, api.ProvisioningConditionType, cr.Status.Conditions[0].Type)
