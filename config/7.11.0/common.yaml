@@ -1003,4 +1003,11 @@ others:
         roleRef:
           kind: Role
           name: "[[.ApplicationName]]-[[.Constants.Product]]svc-edit"
+
+    configMaps:
+      - metadata:
+          name: "[[.ApplicationName]]-kieapp-ca-bundle"
+          labels:
+            app: "[[.ApplicationName]]"
+            "config.openshift.io/inject-trusted-cabundle": "true"
 # Other required resources END

@@ -1,12 +1,10 @@
 package shared
 
 import (
-	"bytes"
-	"crypto/x509"
+	"io/ioutil"
 	"testing"
 
 	"github.com/kiegroup/kie-cloud-operator/pkg/controller/kieapp/constants"
-	keystore "github.com/pavel-v-chernykh/keystore-go"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -59,21 +57,22 @@ func TestGetEnvVar(t *testing.T) {
 
 func TestGenerateKeystore(t *testing.T) {
 	password := GeneratePassword(8)
-	assert.EqualValues(t, 8, len(password))
+	assert.Len(t, password, 8)
 
 	commonName := "test-https"
-	keyBytes := GenerateKeystore(commonName, password)
-	keyStore, err := keystore.Decode(bytes.NewReader(keyBytes), password)
+	keyBytes, err := GenerateKeystore(commonName, password)
 	assert.Nil(t, err)
+	assert.True(t, IsValidKeyStore(commonName, password, keyBytes))
+}
 
-	derKey := keyStore[constants.KeystoreAlias].(*keystore.PrivateKeyEntry).PrivKey
-	_, err = x509.ParsePKCS8PrivateKey(derKey)
+func TestGenerateTruststore(t *testing.T) {
+	caBundle, err := ioutil.ReadFile(constants.CaBundleKey)
 	assert.Nil(t, err)
+	assert.NotEmpty(t, caBundle)
 
-	cert := keyStore[constants.KeystoreAlias].(*keystore.PrivateKeyEntry).CertChain[0].Content
-	certificate, err := x509.ParseCertificate(cert)
+	keyBytes, err := GenerateTruststore(caBundle)
 	assert.Nil(t, err)
-	assert.Equal(t, commonName, certificate.Subject.CommonName)
+	assert.True(t, IsValidTruststore(caBundle, keyBytes))
 }
 
 func TestEnvVarCheck(t *testing.T) {

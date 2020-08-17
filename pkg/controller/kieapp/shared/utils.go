@@ -9,10 +9,11 @@ import (
 	"crypto/x509/pkix"
 	"math/big"
 	"math/rand"
+	"reflect"
 	"time"
 
 	"github.com/kiegroup/kie-cloud-operator/pkg/controller/kieapp/constants"
-	"github.com/pavel-v-chernykh/keystore-go"
+	"github.com/pavel-v-chernykh/keystore-go/v4"
 	"github.com/prometheus/common/log"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -20,33 +21,127 @@ import (
 )
 
 // GenerateKeystore returns a Java Keystore with a self-signed certificate
-func GenerateKeystore(commonName string, password []byte) []byte {
-	cert, derPK, err := genCert(commonName)
+func GenerateKeystore(commonName string, password []byte) ([]byte, error) {
+	var b bytes.Buffer
+	certificate, derPK, err := genCert(commonName)
 	if err != nil {
-		log.Error("Error generating certificate. ", err)
+		return []byte{}, err
 	}
-
-	var chain []keystore.Certificate
-	keyStore := keystore.KeyStore{
-		constants.KeystoreAlias: &keystore.PrivateKeyEntry{
-			Entry: keystore.Entry{
-				CreationDate: time.Now(),
-			},
-			PrivKey: derPK,
-			CertChain: append(chain, keystore.Certificate{
+	keyStore := keystore.New()
+	pkeIn := keystore.PrivateKeyEntry{
+		CreationTime: time.Now(),
+		PrivateKey:   derPK,
+		CertificateChain: []keystore.Certificate{
+			{
 				Type:    "X509",
-				Content: cert,
-			}),
+				Content: certificate,
+			},
 		},
 	}
-
-	var b bytes.Buffer
-	err = keystore.Encode(&b, keyStore, password)
-	if err != nil {
-		log.Error("Error encrypting and signing keystore. ", err)
+	if err := keyStore.SetPrivateKeyEntry(constants.KeystoreAlias, pkeIn, password); err != nil {
+		return []byte{}, err
 	}
+	if err := keyStore.Store(&b, password); err != nil {
+		return []byte{}, err
+	}
+	return b.Bytes(), nil
+}
 
-	return b.Bytes()
+func IsValidKeyStoreSecret(secret corev1.Secret, keystoreCN string, keyStorePassword []byte) bool {
+	if secret.Data[constants.KeystoreName] != nil {
+		return IsValidKeyStore(keystoreCN, keyStorePassword, secret.Data[constants.KeystoreName])
+	}
+	return false
+}
+
+func IsValidKeyStore(keystoreCN string, keyStorePassword, keyStoreData []byte) bool {
+	keyStore := keystore.New()
+	// FIX!!!! err == nil or something else!
+	if err := keyStore.Load(bytes.NewReader(keyStoreData), keyStorePassword); err != nil {
+		log.Error(err)
+		return false
+	}
+	if ok := keyStore.IsPrivateKeyEntry(constants.KeystoreAlias); !ok {
+		return false
+	}
+	pke, err := keyStore.GetPrivateKeyEntry(constants.KeystoreAlias, keyStorePassword)
+	if err != nil {
+		log.Error(err)
+		return false
+	}
+	if commonNameExists(keystoreCN, pke.CertificateChain) {
+		return true
+	}
+	return false
+}
+
+func commonNameExists(keystoreCN string, certChain []keystore.Certificate) bool {
+	for _, certEntry := range certChain {
+		cert, err := x509.ParseCertificate(certEntry.Content)
+		if err != nil {
+			log.Error(err)
+		}
+		if cert.Subject.CommonName == keystoreCN {
+			return true
+		}
+	}
+	return false
+}
+
+// GenerateTruststore returns a Java Truststore with a Trusted CA bundle
+func GenerateTruststore(caBundle []byte) ([]byte, error) {
+	var b bytes.Buffer
+	trustIn := keystore.TrustedCertificateEntry{
+		CreationTime: time.Now(),
+		Certificate: keystore.Certificate{
+			Type:    "X509",
+			Content: caBundle,
+		},
+	}
+	trustStore := keystore.New()
+	if err := trustStore.SetTrustedCertificateEntry(constants.KeystoreAlias, trustIn); err != nil {
+		return []byte{}, err
+	}
+	if err := trustStore.Store(&b, []byte(constants.TruststorePwd)); err != nil {
+		return []byte{}, err
+	}
+	return b.Bytes(), nil
+}
+
+func IsValidTruststoreSecret(secret corev1.Secret, caBundle []byte) bool {
+	if secret.Data[constants.TruststoreName] != nil {
+		return IsValidTruststore(caBundle, secret.Data[constants.TruststoreName])
+	}
+	return false
+}
+
+func IsValidTruststore(caBundle, keyStoreData []byte) bool {
+	trustStore := keystore.New()
+	if err := trustStore.Load(bytes.NewReader(keyStoreData), []byte(constants.TruststorePwd)); err != nil {
+		log.Error(err)
+		return false
+	}
+	if ok := trustStore.IsTrustedCertificateEntry(constants.KeystoreAlias); !ok {
+		return false
+	}
+	trust, err := trustStore.GetTrustedCertificateEntry(constants.KeystoreAlias)
+	if err != nil {
+		log.Error(err)
+		return false
+	}
+	if caBundleExists(caBundle, trust.Certificate) {
+		return true
+	}
+	return false
+}
+
+func caBundleExists(caBundle []byte, certificate keystore.Certificate) bool {
+	if len(caBundle) > 0 {
+		if reflect.DeepEqual(caBundle, certificate.Content) {
+			return true
+		}
+	}
+	return false
 }
 
 // ????????????????

@@ -119,6 +119,12 @@ const (
 	KeystoreAlias = "jboss"
 	// KeystoreName used when creating Secret
 	KeystoreName = "keystore.jks"
+	// TruststoreName used when creating Secret
+	TruststoreName = "truststore.jks"
+	// TruststorePwd used when creating Secret
+	TruststorePwd = "changeit"
+	// CaBundleKey ...
+	CaBundleKey = "ca-bundle.crt"
 	// DatabaseVolumeSuffix Suffix to use for any database volume and volumeMounts
 	DatabaseVolumeSuffix = "pvol"
 	// DefaultDatabaseSize Default Database Persistence size
