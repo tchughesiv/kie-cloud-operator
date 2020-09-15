@@ -6,7 +6,7 @@ echo
 echo Building operator bundle image:
 echo
 
-VERSION=1.3.0
+VERSION=1.4.0
 # VERSION=$(go run getversion.go)
 
 if [[ ${UPSTREAM} != true ]]; then
