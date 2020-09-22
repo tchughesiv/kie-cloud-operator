@@ -162,6 +162,11 @@ func updateCSVlinks(reconciler *Reconciler, route *routev1.Route, operator *apps
 		} else {
 			link.URL = url
 		}
+		log.Debugf("Patching ", csv.Name, " ", csv.Kind, ".")
+		err := reconciler.Service.Patch(context.TODO(), csv.Spec.Links)
+		if err != nil {
+			log.Error("Failed to patch CSV. ", err)
+		}
 	}
 	if !strings.Contains(csv.Spec.Description, constants.ConsoleDescription) {
 		update = true
