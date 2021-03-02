@@ -63,8 +63,6 @@ if [[ ${LOCAL} != true ]]; then
             {
             "container":
                 {
-                "operator_manifests":
-                    {"enable_digest_pinning": true, "enable_repo_replacements": true, "enable_registry_replacements": true, "manifests_dir": "manifests"},
                 "platforms":
                     {"only": ["x86_64"]}
                 }
