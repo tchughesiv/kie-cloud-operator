@@ -7,7 +7,8 @@ operator-sdk generate crds
 mv deploy/crds/app.kiegroup.org_kieapps_crd.yaml deploy/crds/kieapp.crd.yaml
 
 CSVVERSION=$(go run getversion.go -csv)
-for OLMDIR in deploy/olm-catalog/dev deploy/olm-catalog/test deploy/olm-catalog/prod
+OLMPATH="deploy/olm-catalog"
+for OLMENV in dev test prod
 do
-    cp -p deploy/crds/kieapp.crd.yaml ${OLMDIR}/${CSVVERSION}/manifests/
+    cp -p deploy/crds/kieapp.crd.yaml ${OLMPATH}/${OLMENV}/${CSVVERSION}/manifests/
 done
