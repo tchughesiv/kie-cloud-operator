@@ -113,16 +113,18 @@ const (
 	DefaultKieDeployments = 1
 	// KeystoreSecret is the default format for keystore secret names
 	KeystoreSecret = "%s-app-secret"
-	// TruststoreSecret is the default format for truststore secret names
-	TruststoreSecret = "%s-truststore"
 	// KeystoreVolumeSuffix Suffix for the keystore volumes and volumeMounts name
 	KeystoreVolumeSuffix = "keystore-volume"
 	// KeystoreAlias used when creating entry in Keystore
 	KeystoreAlias = "jboss"
 	// KeystoreName used when creating Secret
 	KeystoreName = "keystore.jks"
+	// TruststoreSecret is the default format for truststore secret names
+	TruststoreSecret = "-truststore"
 	// TruststoreName used when creating Secret
 	TruststoreName = "truststore.jks"
+	// TruststorePath used when mounting Secret
+	TruststorePath = "/etc/openshift-truststore-volume"
 	// TruststorePwd used when creating Secret
 	TruststorePwd = "changeit"
 	// CaBundleKey ...

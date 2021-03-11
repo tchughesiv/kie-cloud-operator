@@ -201,12 +201,12 @@ func TestGenerateTruststoreSecret(t *testing.T) {
 
 	cr := &api.KieApp{ObjectMeta: metav1.ObjectMeta{Name: "test"}}
 	secret, err := reconciler.generateTruststoreSecret(
-		fmt.Sprintf(constants.TruststoreSecret, cr.Status.Applied.CommonConfig.ApplicationName),
+		cr.Status.Applied.CommonConfig.ApplicationName+constants.TruststoreSecret,
 		cr,
 		caConfigMap,
 	)
 	assert.Nil(t, err)
-	assert.Equal(t, fmt.Sprintf(constants.TruststoreSecret, cr.Status.Applied.CommonConfig.ApplicationName), secret.Name)
+	assert.Equal(t, cr.Status.Applied.CommonConfig.ApplicationName+constants.TruststoreSecret, secret.Name)
 	assert.True(t, shared.IsValidTruststoreSecret(secret, caBundle))
 }
 

@@ -501,7 +501,7 @@ func (reconciler *Reconciler) loadRoutes(requestedRoutes []resource.KubernetesRe
 func (reconciler *Reconciler) setEnvironmentProperties(cr *api.KieApp, env api.Environment, routes []resource.KubernetesResource, caConfigMap *corev1.ConfigMap) (api.Environment, error) {
 	if cr.Status.Applied.UseOpenshiftCA {
 		secret, err := reconciler.generateTruststoreSecret(
-			fmt.Sprintf(constants.TruststoreSecret, cr.Status.Applied.CommonConfig.ApplicationName),
+			cr.Status.Applied.CommonConfig.ApplicationName+constants.TruststoreSecret,
 			cr,
 			caConfigMap,
 		)

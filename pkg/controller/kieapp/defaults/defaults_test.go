@@ -2060,6 +2060,11 @@ func TestOpenshiftCA(t *testing.T) {
 		},
 		Spec: api.KieAppSpec{
 			Environment: api.RhpamTrial,
+			Objects: api.KieAppObjects{
+				Dashbuilder:      &api.DashbuilderObject{},
+				SmartRouter:      &api.SmartRouterObject{},
+				ProcessMigration: &api.ProcessMigrationObject{},
+			},
 		},
 	}
 	env, err := GetEnvironment(cr, test.MockService())
@@ -2067,6 +2072,29 @@ func TestOpenshiftCA(t *testing.T) {
 
 	assert.False(t, cr.Status.Applied.UseOpenshiftCA)
 	assert.Empty(t, env.Others[0].ConfigMaps)
+	trustVolMnt := corev1.VolumeMount{
+		Name:      cr.Status.Applied.CommonConfig.ApplicationName + constants.TruststoreSecret,
+		MountPath: constants.TruststorePath,
+		ReadOnly:  true,
+	}
+	assert.NotContains(t, env.Console.DeploymentConfigs[0].Spec.Template.Spec.Containers[0].VolumeMounts, trustVolMnt)
+	assert.NotContains(t, env.Servers[0].DeploymentConfigs[0].Spec.Template.Spec.Containers[0].VolumeMounts, trustVolMnt)
+	assert.NotContains(t, env.Dashbuilder.DeploymentConfigs[0].Spec.Template.Spec.Containers[0].VolumeMounts, trustVolMnt)
+	assert.NotContains(t, env.SmartRouter.DeploymentConfigs[0].Spec.Template.Spec.Containers[0].VolumeMounts, trustVolMnt)
+	assert.NotContains(t, env.ProcessMigration.DeploymentConfigs[0].Spec.Template.Spec.Containers[0].VolumeMounts, trustVolMnt)
+	trustVol := corev1.Volume{
+		Name: cr.Status.Applied.CommonConfig.ApplicationName + constants.TruststoreSecret,
+		VolumeSource: corev1.VolumeSource{
+			Secret: &corev1.SecretVolumeSource{
+				SecretName: cr.Status.Applied.CommonConfig.ApplicationName + constants.TruststoreSecret,
+			},
+		},
+	}
+	assert.NotContains(t, env.Console.DeploymentConfigs[0].Spec.Template.Spec.Volumes, trustVol)
+	assert.NotContains(t, env.Servers[0].DeploymentConfigs[0].Spec.Template.Spec.Volumes, trustVol)
+	assert.NotContains(t, env.Dashbuilder.DeploymentConfigs[0].Spec.Template.Spec.Volumes, trustVol)
+	assert.NotContains(t, env.SmartRouter.DeploymentConfigs[0].Spec.Template.Spec.Volumes, trustVol)
+	assert.NotContains(t, env.ProcessMigration.DeploymentConfigs[0].Spec.Template.Spec.Volumes, trustVol)
 
 	cr.Spec.UseOpenshiftCA = true
 	env, err = GetEnvironment(cr, test.MockService())
@@ -2074,6 +2102,18 @@ func TestOpenshiftCA(t *testing.T) {
 
 	assert.True(t, cr.Status.Applied.UseOpenshiftCA)
 	assert.Len(t, env.Others[0].ConfigMaps, 1)
+	// Truststore volumes are mounted
+	assert.Contains(t, env.Console.DeploymentConfigs[0].Spec.Template.Spec.Containers[0].VolumeMounts, trustVolMnt)
+	assert.Contains(t, env.Servers[0].DeploymentConfigs[0].Spec.Template.Spec.Containers[0].VolumeMounts, trustVolMnt)
+	assert.Contains(t, env.Dashbuilder.DeploymentConfigs[0].Spec.Template.Spec.Containers[0].VolumeMounts, trustVolMnt)
+	assert.Contains(t, env.SmartRouter.DeploymentConfigs[0].Spec.Template.Spec.Containers[0].VolumeMounts, trustVolMnt)
+	assert.Contains(t, env.ProcessMigration.DeploymentConfigs[0].Spec.Template.Spec.Containers[0].VolumeMounts, trustVolMnt)
+
+	assert.Contains(t, env.Console.DeploymentConfigs[0].Spec.Template.Spec.Volumes, trustVol)
+	assert.Contains(t, env.Servers[0].DeploymentConfigs[0].Spec.Template.Spec.Volumes, trustVol)
+	assert.Contains(t, env.Dashbuilder.DeploymentConfigs[0].Spec.Template.Spec.Volumes, trustVol)
+	assert.Contains(t, env.SmartRouter.DeploymentConfigs[0].Spec.Template.Spec.Volumes, trustVol)
+	assert.Contains(t, env.ProcessMigration.DeploymentConfigs[0].Spec.Template.Spec.Volumes, trustVol)
 }
 func TestMergeTrialAndCommonConfig(t *testing.T) {
 	cr := &api.KieApp{

@@ -79,11 +79,21 @@ processMigration:
                   - mountPath: /opt/rhpam-process-migration/config/project-overrides.yml
                     subPath: project-overrides.yml
                     name: config
+                  #[[if .UseOpenshiftCA]]
+                  - name: "[[.ApplicationName]]-truststore"
+                    mountPath: "/etc/openshift-truststore-volume"
+                    readOnly: true
+                  #[[end]]
             volumes:
               - name: config
                 configMap:
                   name: "[[.ApplicationName]]-process-migration"
                   defaultMode: 420
+              #[[if .UseOpenshiftCA]]
+              - name: "[[.ApplicationName]]-truststore"
+                secret:
+                  secretName: "[[.ApplicationName]]-truststore"
+              #[[end]]
   configMaps:
     - metadata:
         name: "[[.ApplicationName]]-process-migration"

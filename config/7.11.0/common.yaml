@@ -516,6 +516,11 @@ smartRouter:
                   - name: smartrouter-[[.Constants.KeystoreVolumeSuffix]]
                     mountPath: "/etc/smartrouter-secret-volume"
                     readOnly: true
+                  #[[if .UseOpenshiftCA]]
+                  - name: "[[.ApplicationName]]-truststore"
+                    mountPath: "/etc/openshift-truststore-volume"
+                    readOnly: true
+                  #[[end]]
             volumes:
               - name: "[[.ApplicationName]]-smartrouter"
                 persistentVolumeClaim:
@@ -523,6 +528,11 @@ smartRouter:
               - name: smartrouter-[[.Constants.KeystoreVolumeSuffix]]
                 secret:
                   secretName: "[[.SmartRouter.KeystoreSecret]]"
+              #[[if .UseOpenshiftCA]]
+              - name: "[[.ApplicationName]]-truststore"
+                secret:
+                  secretName: "[[.ApplicationName]]-truststore"
+              #[[end]]
   services:
     - spec:
         ports:
@@ -873,6 +883,11 @@ servers:
                     - mountPath: /etc/kieserver-secret-volume
                       name: kieserver-[[$.Constants.KeystoreVolumeSuffix]]
                       readOnly: true
+                    #[[if $.UseOpenshiftCA]]
+                    - name: "[[$.ApplicationName]]-truststore"
+                      mountPath: "/etc/openshift-truststore-volume"
+                      readOnly: true
+                    #[[end]]
                     #[[if $.Auth.RoleMapper.From]]
                     - name: "[[$.Constants.RoleMapperVolume]]"
                       mountPath: "[[$.Auth.RoleMapper.MountPath]]"
@@ -882,6 +897,11 @@ servers:
                 - name: kieserver-[[$.Constants.KeystoreVolumeSuffix]]
                   secret:
                     secretName: "[[.KeystoreSecret]]"
+                #[[if $.UseOpenshiftCA]]
+                - name: "[[$.ApplicationName]]-truststore"
+                  secret:
+                    secretName: "[[$.ApplicationName]]-truststore"
+                #[[end]]
                 #[[if $.Auth.RoleMapper.From]]
                 - name: "[[$.Constants.RoleMapperVolume]]"
                 #[[if eq $.Auth.RoleMapper.From.Kind "ConfigMap"]]
