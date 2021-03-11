@@ -2053,6 +2053,28 @@ func TestKieAppDefaults(t *testing.T) {
 	assert.Len(t, cr.Status.Applied.Objects.Servers, 1)
 }
 
+func TestOpenshiftCA(t *testing.T) {
+	cr := &api.KieApp{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test",
+		},
+		Spec: api.KieAppSpec{
+			Environment: api.RhpamTrial,
+		},
+	}
+	env, err := GetEnvironment(cr, test.MockService())
+	assert.Nil(t, err)
+
+	assert.False(t, cr.Status.Applied.UseOpenshiftCA)
+	assert.Empty(t, env.Others[0].ConfigMaps)
+
+	cr.Spec.UseOpenshiftCA = true
+	env, err = GetEnvironment(cr, test.MockService())
+	assert.Nil(t, err)
+
+	assert.True(t, cr.Status.Applied.UseOpenshiftCA)
+	assert.Len(t, env.Others[0].ConfigMaps, 1)
+}
 func TestMergeTrialAndCommonConfig(t *testing.T) {
 	cr := &api.KieApp{
 		ObjectMeta: metav1.ObjectMeta{

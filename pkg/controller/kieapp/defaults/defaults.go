@@ -294,10 +294,11 @@ func getEnvTemplate(cr *api.KieApp) (envTemplate api.EnvTemplate, err error) {
 		return envTemplate, err
 	}
 	envTemplate = api.EnvTemplate{
-		Console:     getConsoleTemplate(cr),
-		Servers:     serversConfig,
-		SmartRouter: getSmartRouterTemplate(cr),
-		Constants:   *getTemplateConstants(cr),
+		Console:        getConsoleTemplate(cr),
+		Servers:        serversConfig,
+		SmartRouter:    getSmartRouterTemplate(cr),
+		Constants:      *getTemplateConstants(cr),
+		UseOpenshiftCA: cr.Status.Applied.UseOpenshiftCA,
 	}
 
 	dashbuilderTemplate, err := getDashbuilderTemplate(cr, serversConfig, &envTemplate.Console)

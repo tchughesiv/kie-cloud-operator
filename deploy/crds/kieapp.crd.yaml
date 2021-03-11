@@ -2130,6 +2130,9 @@ spec:
                 description: Set true to enable image tags, disabled by default. This
                   will leverage image tags instead of the image digests.
                 type: boolean
+              useOpenshiftCA:
+                description: Set true to use the Openshift CA bundle as a truststore.
+                type: boolean
               version:
                 description: The version of the application deployment.
                 type: string
@@ -4278,6 +4281,9 @@ spec:
                   useImageTags:
                     description: Set true to enable image tags, disabled by default.
                       This will leverage image tags instead of the image digests.
+                    type: boolean
+                  useOpenshiftCA:
+                    description: Set true to use the Openshift CA bundle as a truststore.
                     type: boolean
                   version:
                     description: The version of the application deployment.

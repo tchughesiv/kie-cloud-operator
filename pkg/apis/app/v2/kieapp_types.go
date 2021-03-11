@@ -28,9 +28,11 @@ type KieAppSpec struct {
 	// Set true to enable image tags, disabled by default. This will leverage image tags instead of the image digests.
 	UseImageTags bool `json:"useImageTags,omitempty"`
 	// The version of the application deployment.
-	Version      string            `json:"version,omitempty"`
-	CommonConfig CommonConfig      `json:"commonConfig,omitempty"`
-	Auth         *KieAppAuthObject `json:"auth,omitempty"`
+	Version string `json:"version,omitempty"`
+	// Set true to use the Openshift CA bundle as a truststore.
+	UseOpenshiftCA bool              `json:"useOpenshiftCA,omitempty"`
+	CommonConfig   CommonConfig      `json:"commonConfig,omitempty"`
+	Auth           *KieAppAuthObject `json:"auth,omitempty"`
 }
 
 // EnvironmentType describes a possible application environment
@@ -597,6 +599,7 @@ type EnvTemplate struct {
 	Dashbuilder      DashbuilderTemplate      `json:"dashbuilder,omitempty"`
 	Databases        []DatabaseTemplate       `json:"databases,omitempty"`
 	Constants        TemplateConstants        `json:"constants,omitempty"`
+	UseOpenshiftCA   bool                     `json:"useOpenshiftCA,omitempty"`
 }
 
 // TemplateConstants constant values that are used within the different configuration templates
