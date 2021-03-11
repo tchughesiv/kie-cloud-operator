@@ -269,6 +269,11 @@ console:
                   - name: "[[.ApplicationName]]-[[.Console.Name]]-[[.Constants.KeystoreVolumeSuffix]]"
                     mountPath: "/etc/businesscentral-secret-volume"
                     readOnly: true
+                  #[[if .UseOpenshiftCA]]
+                  - name: "[[.ApplicationName]]-truststore"
+                    mountPath: "/etc/openshift-truststore-volume"
+                    readOnly: true
+                  #[[end]]
                   #[[if not .Console.Simplified]]
                   - name: "[[.ApplicationName]]-[[.Console.Name]]-pvol"
                     mountPath: "/opt/kie/data"
@@ -291,6 +296,11 @@ console:
               - name: "[[.ApplicationName]]-[[.Console.Name]]-[[.Constants.KeystoreVolumeSuffix]]"
                 secret:
                   secretName: "[[.Console.KeystoreSecret]]"
+              #[[if .UseOpenshiftCA]]
+              - name: "[[.ApplicationName]]-truststore"
+                secret:
+                  secretName: "[[.ApplicationName]]-truststore"
+              #[[end]]
               #[[if not .Console.Simplified]]
               - name: "[[.ApplicationName]]-[[.Console.Name]]-pvol"
                 persistentVolumeClaim:

@@ -29,7 +29,7 @@ type KieAppSpec struct {
 	UseImageTags bool `json:"useImageTags,omitempty"`
 	// The version of the application deployment.
 	Version string `json:"version,omitempty"`
-	// Set true to use the Openshift CA bundle as a truststore.
+	// Set true to use the Openshift CA bundle as a truststore. Replaces java's cacert.
 	UseOpenshiftCA bool              `json:"useOpenshiftCA,omitempty"`
 	CommonConfig   CommonConfig      `json:"commonConfig,omitempty"`
 	Auth           *KieAppAuthObject `json:"auth,omitempty"`

@@ -56,6 +56,14 @@
           "originalJsonPath": "$.spec.useImageTags"
         },
         {
+          "label": "Use Openshift CA",
+          "type": "checkbox",
+          "required": false,
+          "description": "Set true to use the Openshift CA bundle as a truststore. Replaces java's cacert.",
+          "jsonPath": "$.spec.useOpenshiftCA",
+          "originalJsonPath": "$.spec.useOpenshiftCA"
+        },
+        {
           "label": "Custom registry",
           "type": "fieldGroup",
           "required": false,

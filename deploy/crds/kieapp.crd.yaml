@@ -2132,6 +2132,7 @@ spec:
                 type: boolean
               useOpenshiftCA:
                 description: Set true to use the Openshift CA bundle as a truststore.
+                  Replaces java's cacert.
                 type: boolean
               version:
                 description: The version of the application deployment.
@@ -4284,6 +4285,7 @@ spec:
                     type: boolean
                   useOpenshiftCA:
                     description: Set true to use the Openshift CA bundle as a truststore.
+                      Replaces java's cacert.
                     type: boolean
                   version:
                     description: The version of the application deployment.
