@@ -3,6 +3,7 @@ package kieapp
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"reflect"
 	"strings"
 	"testing"
@@ -95,7 +96,6 @@ func TestGenerateSecret(t *testing.T) {
 		fmt.Sprintf(constants.KeystoreSecret, strings.Join([]string{cr.Status.Applied.CommonConfig.ApplicationName, "businesscentral"}, "-")),
 		consoleCN,
 		cr,
-		caConfigMap,
 	)
 	assert.Nil(t, err)
 	assert.Equal(t, consoleSecret, secret)
@@ -176,6 +176,38 @@ func TestGenerateSecret(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, consoleSecret, env.Console.Secrets[0])
 	assert.Equal(t, serverSecret, env.Servers[0].Secrets[0])
+}
+
+func TestGenerateTruststoreSecret(t *testing.T) {
+	scheme, err := api.SchemeBuilder.Build()
+	assert.Nil(t, err, "Failed to get scheme")
+	mockService := test.MockService()
+	mockService.GetSchemeFunc = func() *runtime.Scheme {
+		return scheme
+	}
+	reconciler := Reconciler{
+		Service: mockService,
+	}
+
+	caBundle, err := ioutil.ReadFile("shared/" + constants.CaBundleKey)
+	assert.Nil(t, err)
+	assert.NotEmpty(t, caBundle)
+
+	caConfigMap = &corev1.ConfigMap{
+		Data: map[string]string{
+			constants.CaBundleKey: string(caBundle),
+		},
+	}
+
+	cr := &api.KieApp{ObjectMeta: metav1.ObjectMeta{Name: "test"}}
+	secret, err := reconciler.generateTruststoreSecret(
+		fmt.Sprintf(constants.TruststoreSecret, cr.Status.Applied.CommonConfig.ApplicationName),
+		cr,
+		caConfigMap,
+	)
+	assert.Nil(t, err)
+	assert.Equal(t, fmt.Sprintf(constants.TruststoreSecret, cr.Status.Applied.CommonConfig.ApplicationName), secret.Name)
+	assert.True(t, shared.IsValidTruststoreSecret(secret, caBundle))
 }
 
 func TestGenerateSecrets(t *testing.T) {

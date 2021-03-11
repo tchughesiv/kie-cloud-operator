@@ -113,6 +113,8 @@ const (
 	DefaultKieDeployments = 1
 	// KeystoreSecret is the default format for keystore secret names
 	KeystoreSecret = "%s-app-secret"
+	// TruststoreSecret is the default format for truststore secret names
+	TruststoreSecret = "%s-truststore"
 	// KeystoreVolumeSuffix Suffix for the keystore volumes and volumeMounts name
 	KeystoreVolumeSuffix = "keystore-volume"
 	// KeystoreAlias used when creating entry in Keystore

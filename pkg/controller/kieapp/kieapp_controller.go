@@ -499,6 +499,18 @@ func (reconciler *Reconciler) loadRoutes(requestedRoutes []resource.KubernetesRe
 }
 
 func (reconciler *Reconciler) setEnvironmentProperties(cr *api.KieApp, env api.Environment, routes []resource.KubernetesResource, caConfigMap *corev1.ConfigMap) (api.Environment, error) {
+	if cr.Status.Applied.UseOpenshiftCA {
+		secret, err := reconciler.generateTruststoreSecret(
+			fmt.Sprintf(constants.TruststoreSecret, cr.Status.Applied.CommonConfig.ApplicationName),
+			cr,
+			caConfigMap,
+		)
+		if err != nil {
+			return api.Environment{}, err
+		}
+		env.Others[0].Secrets = append(env.Others[0].Secrets, secret)
+	}
+
 	// console keystore generation
 	if !env.Console.Omit {
 		consoleCN := reconciler.setConsoleHost(cr, env, routes)
@@ -508,7 +520,6 @@ func (reconciler *Reconciler) setEnvironmentProperties(cr *api.KieApp, env api.E
 				fmt.Sprintf(constants.KeystoreSecret, strings.Join([]string{cr.Status.Applied.CommonConfig.ApplicationName, "businesscentral"}, "-")),
 				consoleCN,
 				cr,
-				caConfigMap,
 			)
 			if err != nil {
 				return api.Environment{}, err
@@ -526,7 +537,6 @@ func (reconciler *Reconciler) setEnvironmentProperties(cr *api.KieApp, env api.E
 				fmt.Sprintf(constants.KeystoreSecret, strings.Join([]string{cr.Status.Applied.CommonConfig.ApplicationName, "dashbuilder"}, "-")),
 				consoleCN,
 				cr,
-				caConfigMap,
 			)
 			if err != nil {
 				return api.Environment{}, err
@@ -558,7 +568,6 @@ func (reconciler *Reconciler) setEnvironmentProperties(cr *api.KieApp, env api.E
 				fmt.Sprintf(constants.KeystoreSecret, kieDeploymentName),
 				serverCN,
 				cr,
-				caConfigMap,
 			)
 			if err != nil {
 				return api.Environment{}, err
@@ -588,7 +597,6 @@ func (reconciler *Reconciler) setEnvironmentProperties(cr *api.KieApp, env api.E
 				fmt.Sprintf(constants.KeystoreSecret, strings.Join([]string{cr.Status.Applied.CommonConfig.ApplicationName, "smartrouter"}, "-")),
 				smartCN,
 				cr,
-				caConfigMap,
 			)
 			if err != nil {
 				return api.Environment{}, err
@@ -704,7 +712,7 @@ func filterOmittedObjects(objects []api.CustomObject) []api.CustomObject {
 	return objs
 }
 
-func (reconciler *Reconciler) generateKeystoreSecret(secretName, keystoreCN string, cr *api.KieApp, caConfigMap *corev1.ConfigMap) (secret corev1.Secret, err error) {
+func (reconciler *Reconciler) generateKeystoreSecret(secretName, keystoreCN string, cr *api.KieApp) (secret corev1.Secret, err error) {
 	existingSecret := corev1.Secret{}
 	err = reconciler.Service.Get(context.TODO(), types.NamespacedName{Name: secretName, Namespace: cr.Namespace}, &existingSecret)
 	if err != nil && !errors.IsNotFound(err) {
@@ -734,8 +742,17 @@ func (reconciler *Reconciler) generateKeystoreSecret(secretName, keystoreCN stri
 		secret.SetGroupVersionKind(corev1.SchemeGroupVersion.WithKind("Secret"))
 	}
 
+	return secret, nil
+}
+
+func (reconciler *Reconciler) generateTruststoreSecret(secretName string, cr *api.KieApp, caConfigMap *corev1.ConfigMap) (secret corev1.Secret, err error) {
 	// add truststore to secret if ca bundle exists in configmap
 	if len(caConfigMap.Data) > 0 && caConfigMap.Data[constants.CaBundleKey] != "" {
+		existingSecret := corev1.Secret{}
+		err = reconciler.Service.Get(context.TODO(), types.NamespacedName{Name: secretName, Namespace: cr.Namespace}, &existingSecret)
+		if err != nil && !errors.IsNotFound(err) {
+			return secret, err
+		}
 		caBundle := []byte(caConfigMap.Data[constants.CaBundleKey])
 		if shared.IsValidTruststoreSecret(existingSecret, caBundle) {
 			secret = existingSecret
@@ -744,9 +761,23 @@ func (reconciler *Reconciler) generateKeystoreSecret(secretName, keystoreCN stri
 			if err != nil {
 				return secret, err
 			}
-			secret.Data[constants.TruststoreName] = truststoreByte
+			secret = corev1.Secret{
+				Type: corev1.SecretTypeOpaque,
+				ObjectMeta: metav1.ObjectMeta{
+					Name: secretName,
+					Labels: map[string]string{
+						"app":         cr.Status.Applied.CommonConfig.ApplicationName,
+						"application": cr.Status.Applied.CommonConfig.ApplicationName,
+					},
+				},
+				Data: map[string][]byte{
+					constants.TruststoreName: truststoreByte,
+				},
+			}
+			secret.SetGroupVersionKind(corev1.SchemeGroupVersion.WithKind("Secret"))
 		}
 	}
+
 	return secret, nil
 }
 
