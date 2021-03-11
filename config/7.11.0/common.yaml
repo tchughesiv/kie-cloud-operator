@@ -212,9 +212,15 @@ console:
                   ## RoleMapping config END
                   # Auth config END
                   ## Jvm config BEGIN
-                  #[[if .Console.Jvm.JavaOptsAppend]]
+                  #[[if and .Console.Jvm.JavaOptsAppend .UseOpenshiftCA]]
+                  - name: JAVA_OPTS_APPEND
+                    value: "[[.Console.Jvm.JavaOptsAppend]] -Djavax.net.ssl.trustStore=/etc/openshift-truststore-volume/truststore.jks -Djavax.net.ssl.trustStoreType=jks -Djavax.net.ssl.trustStorePassword=changeit"
+                  #[[else if and .Console.Jvm.JavaOptsAppend (not .UseOpenshiftCA)]]
                   - name: JAVA_OPTS_APPEND
                     value: "[[.Console.Jvm.JavaOptsAppend]]"
+                  #[[else if and .UseOpenshiftCA  (not .Console.Jvm.JavaOptsAppend)]]
+                  - name: JAVA_OPTS_APPEND
+                    value: "-Djavax.net.ssl.trustStore=/etc/openshift-truststore-volume/truststore.jks -Djavax.net.ssl.trustStoreType=jks -Djavax.net.ssl.trustStorePassword=changeit"
                   #[[end]]
                   #[[if .Console.Jvm.JavaMaxMemRatio]]
                   - name: JAVA_MAX_MEM_RATIO
