@@ -505,6 +505,7 @@ func (reconciler *Reconciler) setEnvironmentProperties(cr *api.KieApp, env api.E
 			cr,
 			caConfigMap,
 		)
+		// no return here?????? what if CA operator on fritz and ca not being injected? ba operator would never finish.
 		if err != nil {
 			return api.Environment{}, err
 		}

@@ -29,7 +29,10 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-var log = logs.GetLogger("kieapp.defaults")
+var (
+	log          = logs.GetLogger("kieapp.defaults")
+	caOptsAppend = []string{"-Djavax.net.ssl.trustStore=" + constants.TruststorePath + "/" + constants.TruststoreName, "-Djavax.net.ssl.trustStoreType=jks", "-Djavax.net.ssl.trustStorePassword=" + constants.TruststorePwd}
+)
 
 // GetEnvironment returns an Environment from merging the common config and the config
 // related to the environment set in the KieApp definition
@@ -429,6 +432,7 @@ func getConsoleTemplate(cr *api.KieApp) api.ConsoleTemplate {
 		}
 
 		// JVM configuration
+		cr.Status.Applied.Objects.Console.Jvm = setCAJavaAppend(cr.Status.Applied.UseOpenshiftCA, cr.Status.Applied.Objects.Console.Jvm)
 		if cr.Status.Applied.Objects.Console.Jvm != nil {
 			template.Jvm = *cr.Status.Applied.Objects.Console.Jvm.DeepCopy()
 		}
@@ -491,6 +495,7 @@ func getDashbuilderTemplate(cr *api.KieApp, serversConfig []api.ServerTemplate, 
 		applyDashbuilderConfig(dashbuilderTemplate, *cr, serversConfig, console)
 
 		// JVM configuration
+		cr.Status.Applied.Objects.Dashbuilder.Jvm = setCAJavaAppend(cr.Status.Applied.UseOpenshiftCA, cr.Status.Applied.Objects.Dashbuilder.Jvm)
 		if cr.Status.Applied.Objects.Dashbuilder.Jvm != nil {
 			dashbuilderTemplate.Jvm = *cr.Status.Applied.Objects.Dashbuilder.Jvm.DeepCopy()
 		}
@@ -643,6 +648,21 @@ func serverSortBlanks(serverSets []api.KieServerSet) []api.KieServerSet {
 	return newSets
 }
 
+func setCAJavaAppend(UseOpenshiftCA bool, jvm *api.JvmObject) *api.JvmObject {
+	if UseOpenshiftCA {
+		if jvm == nil {
+			jvm = &api.JvmObject{}
+		}
+		for _, caOption := range caOptsAppend {
+			if !strings.Contains(jvm.JavaOptsAppend, caOption) {
+				jvm.JavaOptsAppend = strings.Join([]string{jvm.JavaOptsAppend, caOption}, " ")
+			}
+		}
+		jvm.JavaOptsAppend = strings.TrimSpace(jvm.JavaOptsAppend)
+	}
+	return jvm
+}
+
 // Returns the templates to use depending on whether the spec was defined with a common configuration
 // or a specific one.
 func getServersConfig(cr *api.KieApp) ([]api.ServerTemplate, error) {
@@ -727,17 +747,18 @@ func getServersConfig(cr *api.KieApp) ([]api.ServerTemplate, error) {
 				template.Jms = *jmsConfig
 			}
 
-			instanceTemplate := template.DeepCopy()
-			if instanceTemplate.KeystoreSecret == "" {
-				instanceTemplate.KeystoreSecret = fmt.Sprintf(constants.KeystoreSecret, instanceTemplate.KieName)
+			//			instanceTemplate := template.DeepCopy()
+			if template.KeystoreSecret == "" {
+				template.KeystoreSecret = fmt.Sprintf(constants.KeystoreSecret, template.KieName)
 			}
 
 			// JVM configuration
+			serverSet.Jvm = setCAJavaAppend(cr.Status.Applied.UseOpenshiftCA, serverSet.Jvm)
 			if serverSet.Jvm != nil {
-				instanceTemplate.Jvm = *serverSet.Jvm.DeepCopy()
+				template.Jvm = *serverSet.Jvm.DeepCopy()
 			}
 
-			servers = append(servers, *instanceTemplate)
+			servers = append(servers, template)
 		}
 
 	}

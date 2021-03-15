@@ -2114,6 +2114,23 @@ func TestOpenshiftCA(t *testing.T) {
 	assert.Contains(t, env.Dashbuilder.DeploymentConfigs[0].Spec.Template.Spec.Volumes, trustVol)
 	assert.Contains(t, env.SmartRouter.DeploymentConfigs[0].Spec.Template.Spec.Volumes, trustVol)
 	assert.Contains(t, env.ProcessMigration.DeploymentConfigs[0].Spec.Template.Spec.Volumes, trustVol)
+
+	assert.NotNil(t, cr.Status.Applied.Objects.Console.Jvm)
+	assert.NotNil(t, cr.Status.Applied.Objects.Dashbuilder.Jvm)
+	assert.NotNil(t, cr.Status.Applied.Objects.Servers[0].Jvm)
+
+	for _, caOption := range caOptsAppend {
+		assert.Contains(t, cr.Status.Applied.Objects.Console.Jvm.JavaOptsAppend, caOption)
+		assert.Contains(t, cr.Status.Applied.Objects.Dashbuilder.Jvm.JavaOptsAppend, caOption)
+		assert.Contains(t, cr.Status.Applied.Objects.Servers[0].Jvm.JavaOptsAppend, caOption)
+	}
+	envVar := corev1.EnvVar{
+		Name:  "JAVA_OPTS_APPEND",
+		Value: strings.Join(caOptsAppend, " "),
+	}
+	assert.Contains(t, env.Console.DeploymentConfigs[0].Spec.Template.Spec.Containers[0].Env, envVar)
+	assert.Contains(t, env.Dashbuilder.DeploymentConfigs[0].Spec.Template.Spec.Containers[0].Env, envVar)
+	assert.Contains(t, env.Servers[0].DeploymentConfigs[0].Spec.Template.Spec.Containers[0].Env, envVar)
 }
 func TestMergeTrialAndCommonConfig(t *testing.T) {
 	cr := &api.KieApp{
