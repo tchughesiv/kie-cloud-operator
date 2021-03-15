@@ -31,7 +31,11 @@ import (
 
 var (
 	log          = logs.GetLogger("kieapp.defaults")
-	caOptsAppend = []string{"-Djavax.net.ssl.trustStore=" + constants.TruststorePath + "/" + constants.TruststoreName, "-Djavax.net.ssl.trustStoreType=jks", "-Djavax.net.ssl.trustStorePassword=" + constants.TruststorePwd}
+	caOptsAppend = []string{
+		"-Djavax.net.ssl.trustStore=" + constants.TruststorePath + "/" + constants.TruststoreName,
+		"-Djavax.net.ssl.trustStoreType=jks",
+		"-Djavax.net.ssl.trustStorePassword=" + constants.TruststorePwd,
+	}
 )
 
 // GetEnvironment returns an Environment from merging the common config and the config
