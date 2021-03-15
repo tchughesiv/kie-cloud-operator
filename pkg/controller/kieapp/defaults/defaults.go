@@ -436,7 +436,7 @@ func getConsoleTemplate(cr *api.KieApp) api.ConsoleTemplate {
 		}
 
 		// JVM configuration
-		cr.Status.Applied.Objects.Console.Jvm = setCAJavaAppend(cr.Status.Applied.UseOpenshiftCA, cr.Status.Applied.Objects.Console.Jvm)
+		cr.Status.Applied.Objects.Console.Jvm = setCAJavaAppend(cr.Status.Applied.UseOpenshiftCA, cr.Status.Applied.Objects.Console.Jvm, cr.Status.Applied.Version)
 		if cr.Status.Applied.Objects.Console.Jvm != nil {
 			template.Jvm = *cr.Status.Applied.Objects.Console.Jvm.DeepCopy()
 		}
@@ -499,7 +499,7 @@ func getDashbuilderTemplate(cr *api.KieApp, serversConfig []api.ServerTemplate, 
 		applyDashbuilderConfig(dashbuilderTemplate, *cr, serversConfig, console)
 
 		// JVM configuration
-		cr.Status.Applied.Objects.Dashbuilder.Jvm = setCAJavaAppend(cr.Status.Applied.UseOpenshiftCA, cr.Status.Applied.Objects.Dashbuilder.Jvm)
+		cr.Status.Applied.Objects.Dashbuilder.Jvm = setCAJavaAppend(cr.Status.Applied.UseOpenshiftCA, cr.Status.Applied.Objects.Dashbuilder.Jvm, cr.Status.Applied.Version)
 		if cr.Status.Applied.Objects.Dashbuilder.Jvm != nil {
 			dashbuilderTemplate.Jvm = *cr.Status.Applied.Objects.Dashbuilder.Jvm.DeepCopy()
 		}
@@ -652,8 +652,8 @@ func serverSortBlanks(serverSets []api.KieServerSet) []api.KieServerSet {
 	return newSets
 }
 
-func setCAJavaAppend(UseOpenshiftCA bool, jvm *api.JvmObject) *api.JvmObject {
-	if UseOpenshiftCA {
+func setCAJavaAppend(UseOpenshiftCA bool, jvm *api.JvmObject, version string) *api.JvmObject {
+	if UseOpenshiftCA && semver.Compare(semver.MajorMinor("v"+version), "v7.11") >= 0 {
 		if jvm == nil {
 			jvm = &api.JvmObject{}
 		}
@@ -756,7 +756,7 @@ func getServersConfig(cr *api.KieApp) ([]api.ServerTemplate, error) {
 			}
 
 			// JVM configuration
-			serverSet.Jvm = setCAJavaAppend(cr.Status.Applied.UseOpenshiftCA, serverSet.Jvm)
+			serverSet.Jvm = setCAJavaAppend(cr.Status.Applied.UseOpenshiftCA, serverSet.Jvm, cr.Status.Applied.Version)
 			if serverSet.Jvm != nil {
 				template.Jvm = *serverSet.Jvm.DeepCopy()
 			}

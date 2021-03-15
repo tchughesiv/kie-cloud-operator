@@ -133,9 +133,11 @@ func (reconciler *Reconciler) Reconcile(request reconcile.Request) (reconcile.Re
 	}
 
 	caConfigMap := &corev1.ConfigMap{}
-	if err := reconciler.Service.Get(context.TODO(), types.NamespacedName{Name: instance.Name + "-kieapp-ca-bundle", Namespace: instance.Namespace}, caConfigMap); err != nil {
-		if !errors.IsNotFound(err) {
-			return reconcile.Result{Requeue: true, RequeueAfter: time.Duration(500) * time.Millisecond}, err
+	if semver.Compare(semver.MajorMinor("v"+instance.Status.Applied.Version), "v7.11") >= 0 {
+		if err := reconciler.Service.Get(context.TODO(), types.NamespacedName{Name: instance.Name + "-kieapp-ca-bundle", Namespace: instance.Namespace}, caConfigMap); err != nil {
+			if !errors.IsNotFound(err) {
+				return reconcile.Result{Requeue: true, RequeueAfter: time.Duration(500) * time.Millisecond}, err
+			}
 		}
 	}
 
@@ -499,7 +501,7 @@ func (reconciler *Reconciler) loadRoutes(requestedRoutes []resource.KubernetesRe
 }
 
 func (reconciler *Reconciler) setEnvironmentProperties(cr *api.KieApp, env api.Environment, routes []resource.KubernetesResource, caConfigMap *corev1.ConfigMap) (api.Environment, error) {
-	if cr.Status.Applied.UseOpenshiftCA {
+	if cr.Status.Applied.UseOpenshiftCA && semver.Compare(semver.MajorMinor("v"+cr.Status.Applied.Version), "v7.11") >= 0 {
 		secret, err := reconciler.generateTruststoreSecret(
 			cr.Status.Applied.CommonConfig.ApplicationName+constants.TruststoreSecret,
 			cr,
