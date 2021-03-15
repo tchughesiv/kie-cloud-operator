@@ -510,6 +510,60 @@ smartRouter:
                     value: "/opt/[[.Constants.Product]]-smartrouter/data"
                   - name: KIE_SERVER_ROUTER_CONFIG_WATCHER_ENABLED
                     value: "true"
+                  ## Jvm config BEGIN
+                  #[[if .SmartRouter.Jvm.JavaOptsAppend]]
+                  - name: JAVA_OPTS_APPEND
+                    value: "[[.SmartRouter.Jvm.JavaOptsAppend]]"
+                  #[[end]]
+                  #[[if .SmartRouter.Jvm.JavaMaxMemRatio]]
+                  - name: JAVA_MAX_MEM_RATIO
+                    value: "[[.SmartRouter.Jvm.JavaMaxMemRatio]]"
+                  #[[end]]
+                  #[[if .SmartRouter.Jvm.JavaInitialMemRatio]]
+                  - name: JAVA_INITIAL_MEM_RATIO
+                    value: "[[.SmartRouter.Jvm.JavaInitialMemRatio]]"
+                  #[[end]]
+                  #[[if .SmartRouter.Jvm.JavaMaxInitialMem]]
+                  - name: JAVA_MAX_INITIAL_MEM
+                    value: "[[.SmartRouter.Jvm.JavaMaxInitialMem]]"
+                  #[[end]]
+                  #[[if .SmartRouter.Jvm.JavaDiagnostics]]
+                  - name: JAVA_DIAGNOSTICS
+                    value: "[[.SmartRouter.Jvm.JavaDiagnostics]]"
+                  #[[end]]
+                  #[[if .SmartRouter.Jvm.JavaDebug]]
+                  - name: JAVA_DEBUG
+                    value: "[[.SmartRouter.Jvm.JavaDebug]]"
+                  #[[end]]
+                  #[[if .SmartRouter.Jvm.JavaDebugPort]]
+                  - name: JAVA_DEBUG_PORT
+                    value: "[[.SmartRouter.Jvm.JavaDebugPort]]"
+                  #[[end]]
+                  #[[if .SmartRouter.Jvm.GcMinHeapFreeRatio]]
+                  - name: GC_MIN_HEAP_FREE_RATIO
+                    value: "[[.SmartRouter.Jvm.GcMinHeapFreeRatio]]"
+                  #[[end]]
+                  #[[if .SmartRouter.Jvm.GcMaxHeapFreeRatio]]
+                  - name: GC_MAX_HEAP_FREE_RATIO
+                    value: "[[.SmartRouter.Jvm.GcMaxHeapFreeRatio]]"
+                  #[[end]]
+                  #[[if .SmartRouter.Jvm.GcTimeRatio]]
+                  - name: GC_TIME_RATIO
+                    value: "[[.SmartRouter.Jvm.GcTimeRatio]]"
+                  #[[end]]
+                  #[[if .SmartRouter.Jvm.GcAdaptiveSizePolicyWeight]]
+                  - name: GC_ADAPTIVE_SIZE_POLICY_WEIGHT
+                    value: "[[.SmartRouter.Jvm.GcAdaptiveSizePolicyWeight]]"
+                  #[[end]]
+                  #[[if .SmartRouter.Jvm.GcMaxMetaspaceSize]]
+                  - name: GC_MAX_METASPACE_SIZE
+                    value: "[[.SmartRouter.Jvm.GcMaxMetaspaceSize]]"
+                  #[[end]]
+                  #[[if .SmartRouter.Jvm.GcContainerOptions]]
+                  - name: GC_CONTAINER_OPTIONS
+                    value: "[[.SmartRouter.Jvm.GcContainerOptions]]"
+                  #[[end]]
+                  ## Jvm config END
                 volumeMounts:
                   - name: "[[.ApplicationName]]-smartrouter"
                     mountPath: "/opt/[[.Constants.Product]]-smartrouter/data"

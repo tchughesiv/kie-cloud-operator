@@ -595,6 +595,11 @@ func getSmartRouterTemplate(cr *api.KieApp) api.SmartRouterTemplate {
 			template.ImageURL = template.ImageContext + "/" + template.Image + ":" + template.ImageTag
 			template.OmitImageStream = false
 		}
+		// JVM configuration
+		cr.Status.Applied.Objects.SmartRouter.Jvm = setCAJavaAppend(cr.Status.Applied.UseOpenshiftCA, cr.Status.Applied.Objects.SmartRouter.Jvm, cr.Status.Applied.Version)
+		if cr.Status.Applied.Objects.SmartRouter.Jvm != nil {
+			template.Jvm = *cr.Status.Applied.Objects.SmartRouter.Jvm.DeepCopy()
+		}
 	}
 	return template
 }
@@ -1291,6 +1296,7 @@ func SetDefaults(cr *api.KieApp) {
 	}
 
 	if specApply.Objects.SmartRouter != nil {
+		checkJvmOnSmartRouter(specApply.Objects.SmartRouter)
 		setResourcesDefault(&specApply.Objects.SmartRouter.KieAppObject, constants.SmartRouterLimits, constants.SmartRouterRequests)
 	}
 
@@ -1323,6 +1329,13 @@ func checkJvmOnDashbuilder(dashbuilder *api.DashbuilderObject) {
 		dashbuilder.Jvm = &api.JvmObject{}
 	}
 	setJvmDefault(dashbuilder.Jvm)
+}
+
+func checkJvmOnSmartRouter(smartrouter *api.SmartRouterObject) {
+	if smartrouter.Jvm == nil {
+		smartrouter.Jvm = &api.JvmObject{}
+	}
+	setJvmDefault(smartrouter.Jvm)
 }
 
 func checkJvmOnServer(server *api.KieServerSet) {

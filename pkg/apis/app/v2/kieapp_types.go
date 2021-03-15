@@ -157,7 +157,8 @@ type SmartRouterObject struct {
 	// Smart Router protocol, if no value is provided, http is the default protocol.
 	Protocol string `json:"protocol,omitempty"`
 	// If enabled, Business Central will use the external smartrouter route to communicate with it. Note that, valid SSL certificates should be used.
-	UseExternalRoute bool `json:"useExternalRoute,omitempty"`
+	UseExternalRoute bool       `json:"useExternalRoute,omitempty"`
+	Jvm              *JvmObject `json:"jvm,omitempty"`
 }
 
 // KieAppJmsObject messaging specification to be used by the KieApp
@@ -761,16 +762,17 @@ type DatabaseTemplate struct {
 
 // SmartRouterTemplate contains all the variables used in the yaml templates
 type SmartRouterTemplate struct {
-	OmitImageStream  bool   `json:"omitImageStream"`
-	Replicas         int32  `json:"replicas,omitempty"`
-	KeystoreSecret   string `json:"keystoreSecret,omitempty"`
-	Protocol         string `json:"protocol,omitempty"`
-	UseExternalRoute bool   `json:"useExternalRoute,omitempty"`
-	ImageContext     string `json:"imageContext,omitempty"`
-	Image            string `json:"image,omitempty"`
-	ImageTag         string `json:"imageTag,omitempty"`
-	ImageURL         string `json:"imageURL,omitempty"`
-	StorageClassName string `json:"storageClassName,omitempty"`
+	OmitImageStream  bool      `json:"omitImageStream"`
+	Replicas         int32     `json:"replicas,omitempty"`
+	KeystoreSecret   string    `json:"keystoreSecret,omitempty"`
+	Protocol         string    `json:"protocol,omitempty"`
+	UseExternalRoute bool      `json:"useExternalRoute,omitempty"`
+	ImageContext     string    `json:"imageContext,omitempty"`
+	Image            string    `json:"image,omitempty"`
+	ImageTag         string    `json:"imageTag,omitempty"`
+	ImageURL         string    `json:"imageURL,omitempty"`
+	StorageClassName string    `json:"storageClassName,omitempty"`
+	Jvm              JvmObject `json:"jvm,omitempty"`
 }
 
 // ReplicaConstants contains the default replica amounts for a component in a given environment type

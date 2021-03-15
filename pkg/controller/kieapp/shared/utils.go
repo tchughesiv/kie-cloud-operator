@@ -98,6 +98,8 @@ func GenerateTruststore(caBundle []byte) ([]byte, error) {
 			Content: caBundle,
 		},
 	}
+	// certPool := x509.NewCertPool()
+	// if ok := certPool.AppendCertsFromPEM(caBundle); ok {
 	trustStore := keystore.New()
 	if err := trustStore.SetTrustedCertificateEntry(constants.KeystoreAlias, trustIn); err != nil {
 		return []byte{}, err
