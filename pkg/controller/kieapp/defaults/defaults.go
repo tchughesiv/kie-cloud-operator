@@ -751,7 +751,6 @@ func getServersConfig(cr *api.KieApp) ([]api.ServerTemplate, error) {
 				template.Jms = *jmsConfig
 			}
 
-			//			instanceTemplate := template.DeepCopy()
 			if template.KeystoreSecret == "" {
 				template.KeystoreSecret = fmt.Sprintf(constants.KeystoreSecret, template.KieName)
 			}
