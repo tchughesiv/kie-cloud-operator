@@ -27,12 +27,12 @@ type KieAppSpec struct {
 	Upgrades KieAppUpgrades `json:"upgrades,omitempty"`
 	// Set true to enable image tags, disabled by default. This will leverage image tags instead of the image digests.
 	UseImageTags bool `json:"useImageTags,omitempty"`
-	// The version of the application deployment.
-	Version string `json:"version,omitempty"`
 	// Set true to use the Openshift CA bundle as a truststore. Replaces java's cacert.
-	UseOpenshiftCA bool              `json:"useOpenshiftCA,omitempty"`
-	CommonConfig   CommonConfig      `json:"commonConfig,omitempty"`
-	Auth           *KieAppAuthObject `json:"auth,omitempty"`
+	UseOpenshiftCA bool `json:"useOpenshiftCA,omitempty"`
+	// The version of the application deployment.
+	Version      string            `json:"version,omitempty"`
+	CommonConfig CommonConfig      `json:"commonConfig,omitempty"`
+	Auth         *KieAppAuthObject `json:"auth,omitempty"`
 }
 
 // EnvironmentType describes a possible application environment
