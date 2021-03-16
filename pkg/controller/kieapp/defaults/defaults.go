@@ -294,18 +294,19 @@ func findCustomObjectByName(template api.CustomObject, objects []api.CustomObjec
 }
 
 func getEnvTemplate(cr *api.KieApp) (envTemplate api.EnvTemplate, err error) {
-
 	SetDefaults(cr)
 	serversConfig, err := getServersConfig(cr)
 	if err != nil {
 		return envTemplate, err
 	}
 	envTemplate = api.EnvTemplate{
-		Console:        getConsoleTemplate(cr),
-		Servers:        serversConfig,
-		SmartRouter:    getSmartRouterTemplate(cr),
-		Constants:      *getTemplateConstants(cr),
-		UseOpenshiftCA: cr.Status.Applied.UseOpenshiftCA,
+		Console:     getConsoleTemplate(cr),
+		Servers:     serversConfig,
+		SmartRouter: getSmartRouterTemplate(cr),
+		Constants:   *getTemplateConstants(cr),
+	}
+	if semver.Compare(semver.MajorMinor("v"+cr.Status.Applied.Version), "v7.11") >= 0 {
+		envTemplate.UseOpenshiftCA = cr.Status.Applied.UseOpenshiftCA
 	}
 
 	dashbuilderTemplate, err := getDashbuilderTemplate(cr, serversConfig, &envTemplate.Console)
