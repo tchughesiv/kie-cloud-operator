@@ -92,6 +92,17 @@ func commonNameExists(keystoreCN string, certChain []keystore.Certificate) bool 
 // GenerateTruststore returns a Java Truststore with a Trusted CA bundle
 func GenerateTruststore(caBundle []byte) ([]byte, error) {
 	var b bytes.Buffer
+	trustStore, err := createTruststoreObject(caBundle)
+	if err != nil {
+		return []byte{}, err
+	}
+	if err := trustStore.Store(&b, []byte(constants.TruststorePwd)); err != nil {
+		return []byte{}, err
+	}
+	return b.Bytes(), nil
+}
+
+func createTruststoreObject(caBundle []byte) (keystore.KeyStore, error) {
 	trustStore := keystore.New()
 	certPool := x509.NewCertPool()
 	if ok := certPool.AppendCertsFromPEM(caBundle); ok {
@@ -105,14 +116,11 @@ func GenerateTruststore(caBundle []byte) ([]byte, error) {
 				},
 			}
 			if err := trustStore.SetTrustedCertificateEntry(strconv.Itoa(i), trustIn); err != nil {
-				return []byte{}, err
+				return keystore.KeyStore{}, err
 			}
 		}
-		if err := trustStore.Store(&b, []byte(constants.TruststorePwd)); err != nil {
-			return []byte{}, err
-		}
 	}
-	return b.Bytes(), nil
+	return trustStore, nil
 }
 
 func IsValidTruststoreSecret(secret corev1.Secret, caBundle []byte) bool {
@@ -123,23 +131,34 @@ func IsValidTruststoreSecret(secret corev1.Secret, caBundle []byte) bool {
 }
 
 func IsValidTruststore(caBundle, keyStoreData []byte) bool {
-	trustStore := keystore.New()
-	if err := trustStore.Load(bytes.NewReader(keyStoreData), []byte(constants.TruststorePwd)); err != nil {
+	existingtTrustStore := keystore.New()
+	if err := existingtTrustStore.Load(bytes.NewReader(keyStoreData), []byte(constants.TruststorePwd)); err != nil {
 		log.Error(err)
 		return false
 	}
-	if ok := trustStore.IsTrustedCertificateEntry(constants.KeystoreAlias); !ok {
-		return false
-	}
-	trust, err := trustStore.GetTrustedCertificateEntry(constants.KeystoreAlias)
+	trustStore, err := createTruststoreObject(caBundle)
 	if err != nil {
-		log.Error(err)
 		return false
 	}
-	if caBundleExists(caBundle, trust.Certificate) {
-		return true
+	existingtTrustAliases := existingtTrustStore.Aliases()
+	trustAliases := trustStore.Aliases()
+	if len(trustAliases) != len(existingtTrustAliases) {
+		return false
 	}
-	return false
+	for _, alias := range existingtTrustAliases {
+		existingCertEntry, err := existingtTrustStore.GetTrustedCertificateEntry(alias)
+		if err != nil {
+			return false
+		}
+		trustCertEntry, err := trustStore.GetTrustedCertificateEntry(alias)
+		if err != nil {
+			return false
+		}
+		if !reflect.DeepEqual(existingCertEntry, trustCertEntry) {
+			return false
+		}
+	}
+	return true
 }
 
 func caBundleExists(caBundle []byte, certificate keystore.Certificate) bool {
