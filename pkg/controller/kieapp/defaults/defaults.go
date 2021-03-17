@@ -34,7 +34,7 @@ var (
 	caOptsAppend = []string{
 		"-Djavax.net.ssl.trustStore=" + constants.TruststorePath + "/" + constants.TruststoreName,
 		"-Djavax.net.ssl.trustStoreType=jks",
-		"-Djavax.net.ssl.trustStorePassword=" + constants.TruststorePwd,
+		//"-Djavax.net.ssl.trustStorePassword=" + constants.TruststorePwd,
 	}
 )
 

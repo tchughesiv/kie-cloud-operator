@@ -10,6 +10,7 @@ import (
 	"math/big"
 	"math/rand"
 	"reflect"
+	"strconv"
 	"time"
 
 	"github.com/kiegroup/kie-cloud-operator/pkg/controller/kieapp/constants"
@@ -91,21 +92,25 @@ func commonNameExists(keystoreCN string, certChain []keystore.Certificate) bool 
 // GenerateTruststore returns a Java Truststore with a Trusted CA bundle
 func GenerateTruststore(caBundle []byte) ([]byte, error) {
 	var b bytes.Buffer
-	trustIn := keystore.TrustedCertificateEntry{
-		CreationTime: time.Now(),
-		Certificate: keystore.Certificate{
-			Type:    "X509",
-			Content: caBundle,
-		},
-	}
-	// certPool := x509.NewCertPool()
-	// if ok := certPool.AppendCertsFromPEM(caBundle); ok {
 	trustStore := keystore.New()
-	if err := trustStore.SetTrustedCertificateEntry(constants.KeystoreAlias, trustIn); err != nil {
-		return []byte{}, err
-	}
-	if err := trustStore.Store(&b, []byte(constants.TruststorePwd)); err != nil {
-		return []byte{}, err
+	certPool := x509.NewCertPool()
+	if ok := certPool.AppendCertsFromPEM(caBundle); ok {
+		subjects := certPool.Subjects()
+		for i, c := range subjects {
+			trustIn := keystore.TrustedCertificateEntry{
+				CreationTime: time.Now(),
+				Certificate: keystore.Certificate{
+					Type:    "X509",
+					Content: c,
+				},
+			}
+			if err := trustStore.SetTrustedCertificateEntry(strconv.Itoa(i), trustIn); err != nil {
+				return []byte{}, err
+			}
+		}
+		if err := trustStore.Store(&b, []byte(constants.TruststorePwd)); err != nil {
+			return []byte{}, err
+		}
 	}
 	return b.Bytes(), nil
 }
